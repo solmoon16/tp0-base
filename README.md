@@ -25,3 +25,15 @@ Si bien se realiza la operación en el DockerCompose con la clave 'volume', no e
 También se eliminó la línea que copiaba el archivo de configuración del Dockerfile del cliente, y se creó un archivo .dockerignore para que no se copien los archivos de configuración cuando se reinician las imágenes de los contenedores. En caso contrario, como se copiaba toda la carpeta los archivos iban a ser copiados nuevamente.
 
 El funcionamiento y ejecución es igual que antes, con la diferencia de que si se modifican los archivos de configuración no se hará un build de las imágenes.
+
+### Ejercicio N°3
+
+Se creó un script de bash `validar-echo-server.sh` que recibe por parámetro un mensaje para enviarle al servidor y corroborar que esté funcionando adecuadamente. En caso de que el servidor retorne el mismo mensaje, se imprime `action: test_echo_server | result: success` y en caso contrario `action: test_echo_server | result: fail`.
+
+En caso de que el servidor esté apagado o la red no esté levantada, primero se imprimirá un error de docker informando la situación.
+
+Para ejecutarlo hay que correr:
+
+```bash
+./validar-echo.server.sh $mensaje
+```
