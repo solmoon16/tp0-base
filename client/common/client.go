@@ -2,7 +2,6 @@ package common
 
 import (
 	"bufio"
-	"fmt"
 	"net"
 	"time"
 	"syscall"
@@ -80,13 +79,17 @@ func (c *Client) handleConnection(msgID int) {
 		return
 	}
 
-	// TODO: Modify the send to avoid short-write
-	fmt.Fprintf(
-		c.conn,
-		"[CLIENT %v] Message N°%v\n",
-		c.config.ID,
-		msgID,
-	)
+	bet := NewBet()
+	if bet == nil {
+		c.stop<-true
+		log.Errorf("action: create_bet | result: fail | client_id: %v | error: could not create bet",
+			c.config.ID,
+		)
+		return
+	}
+
+	c.conn.Write([]byte(bet.String()))
+
 	msg, err := bufio.NewReader(c.conn).ReadString('\n')
 	c.conn.Close()
 
