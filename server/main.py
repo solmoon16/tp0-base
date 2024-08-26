@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from configparser import ConfigParser
-from common.server import Server
+from common.server import ServerSignalHandler, Server
 import logging
 import os
 
@@ -49,6 +49,7 @@ def main():
 
     # Initialize server and start server loop
     server = Server(port, listen_backlog)
+    ServerSignalHandler(server)
     server.run()
 
 def initialize_log(logging_level):
@@ -66,4 +67,5 @@ def initialize_log(logging_level):
 
 
 if __name__ == "__main__":
+    
     main()
