@@ -29,17 +29,19 @@ type Client struct {
 	stop chan bool
 }
 
-func signalHandler(stop chan bool) {
+func signalHandler(stop chan bool, client_id string) {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT)
+	sig := <-sigs
 	stop <- true
+	log.Infof("action: received signal %v | info: closing socket | client_id: %v", sig, client_id)
 }
 
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
 func NewClient(config ClientConfig) *Client {
 	stop := make(chan bool, 1)
-	go signalHandler(stop)
+	go signalHandler(stop, config.ID)
 
 	client := &Client{
 		config: config,
@@ -59,19 +61,24 @@ func (c *Client) createClientSocket() error {
 			c.config.ID,
 			err,
 		)
+		conn = nil
 	}
 	c.conn = conn
 	return nil
 }
 
 func (c *Client) closeAll() {
-	log.Infof("action: received closing signal | info: closing socket | client_id: %v", c.config.ID)
 	if c.conn != nil {c.conn.Close()}
 }
 
 func (c *Client) handleConnection(msgID int) {
 	// Create the connection the server in every loop iteration. Send an
 	c.createClientSocket()
+
+	if c.conn == nil {
+		c.stop<-true
+		return
+	}
 
 	// TODO: Modify the send to avoid short-write
 	fmt.Fprintf(
