@@ -37,3 +37,13 @@ Para ejecutarlo hay que correr:
 ```bash
 ./validar-echo.server.sh $mensaje
 ```
+
+### Ejercicio N°4
+
+En este programa los recursos principales siendo utilizados son sockets que permiten comunicar al servidor con los clientes, por lo que ese es el recurso que hay que tener en cuenta en un _graceful shutdown_.
+
+Desde el lado del servidor, cuando se recibe la señal SIGTERM, se notifica inmediatamente al servidor y se llama a la función que cierra y libera los recursos. En este caso, se cierra el socket del servidor por el cual escucha las conexiones entrantes y, si estaba en comunicación con algún cliente, cierra ese socket también.
+
+El cliente solo tiene un socket abierto que abre y cierra cada vez que se conecta con el servidor. Cuando se recibe la señal SIGTERM, termina la conexión que tenía abierta y no vuelve a abrir otra. Si el socket que estaba utilizando queda abierto, se cierra.
+
+Dado el caso de que haya más recursos a manejar en un futuro, las estructuras armadas ya dan lugar a que se libere todo lo utilizado por cada entidad.
