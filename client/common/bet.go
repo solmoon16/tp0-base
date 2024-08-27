@@ -11,6 +11,7 @@ type Bet struct {
 	idNumber string 
 	dateOfBirth string
 	number string
+	agency string
 }
 
 func NewBet() *Bet {
@@ -21,7 +22,6 @@ func NewBet() *Bet {
 	number := os.Getenv("NUMBER")
 
 	if len(name) == 0 || len(lastName) == 0 || len(idNumber) == 0 || len(dateOfBirth) == 0 || len(number) == 0 {
-		fmt.Println("There are some env variables missing")
 		return nil
 	}
 
@@ -36,5 +36,5 @@ func NewBet() *Bet {
 }
 
 func (b Bet) String() string {
-	return fmt.Sprintf("%v;%v;%v;%v;%v", b.name, b.lastName, b.idNumber, b.dateOfBirth, b.number)
+	return fmt.Sprintf("%v;%v;%v;%v;%v;%v", b.agency, b.name, b.lastName, b.idNumber, b.dateOfBirth, b.number)
 }
