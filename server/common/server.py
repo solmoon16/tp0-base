@@ -1,7 +1,9 @@
 import signal
 import socket
 import logging
+import string
 
+from common.utils import Bet, store_bets
 
 class ServerSignalHandler:
     def __init__(self, server):
@@ -37,27 +39,7 @@ class Server:
             if self.client_socket is None:
                 break
             self.__handle_client_connection()
-
-    def __handle_client_connection(self):
-        """
-        Read message from a specific client socket and closes the socket
-
-        If a problem arises in the communication with the client, the
-        client socket will also be closed
-        """
-        try:
-            # TODO: Modify the receive to avoid short-reads
-            msg = self.client_socket.recv(1024).rstrip().decode('utf-8')
-            addr = self.client_socket.getpeername()
-            logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
-            # TODO: Modify the send to avoid short-writes
-            self.client_socket.send("{}\n".format(msg).encode('utf-8'))
-        except OSError as e:
-            logging.error("action: receive_message | result: fail | error: {e}")
-        finally:
-            self.client_socket.close()
-            self.client_socket = None
-
+    
     def __accept_new_connection(self):
         """
         Accept new connections
@@ -74,11 +56,51 @@ class Server:
             return None
         else:
             return c
+
+    def __handle_client_connection(self):
+        """
+        Read message from a specific client socket and closes the socket
+
+        If a problem arises in the communication with the client, the
+        client socket will also be closed
+        """
+        try:
+            while True:
+                msg = self.client_socket.recv(1024).rstrip().decode('utf-8')
+                if not msg:
+                    break
+                self.handle_message(msg)
+
+        except OSError as e:
+            logging.error("action: receive_message | result: fail | error: {e}")
+        finally:
+            close_socket(self.client_socket, 'client')
+
+    def handle_message(self, msg: string):
+        addr = self.client_socket.getpeername()
+        logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
+
+        msg_list = msg.split(";")
+        if len(msg_list) < 6:
+            logging.error("action: apuesta_almacenada | result: fail | error: bet doesn't have all necessary information")
+            return
+            
+        bet = Bet(msg_list[0], msg_list[1], msg_list[2], msg_list[3], msg_list[4], msg_list[5])
+        store_bets([bet])
+        logging.info(f'action: apuesta_almacenada | result: success | dni:{bet.document} | numero: {bet.number}')
+
+        self.send_response(bet)
+
+    def send_response(self, bet: Bet):
+        self.client_socket.sendall("{}\n".format(bet.number).encode('utf-8'))
     
     def close_all(self):
-        logging.info('action: closing socket | info: closing server socket')
-        self._server_socket.close()
-        if self.client_socket is not None:
-            logging.info('action: closing socket | info: closing client socket')
-            self.client_socket.close()
-            self.client_socket = None
+        self._server_socket = close_socket(self._server_socket, 'server')
+        self.client_socket = close_socket(self.client_socket, 'client')
+
+def close_socket(sock: socket, name: string):
+    if sock is not None:
+        logging.info(f'action: closing socket | info: closing {name}')
+        sock.close()
+        sock = None
+    sock
