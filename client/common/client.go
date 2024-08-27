@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"os"
 	"os/signal"
+	"strings"
 
 	"github.com/op/go-logging"
 )
@@ -79,18 +80,12 @@ func (c *Client) handleConnection(msgID int) {
 		return
 	}
 
-	bet := NewBet()
-	if bet == nil {
-		c.stop<-true
-		log.Errorf("action: create_bet | result: fail | client_id: %v | error: could not create bet",
-			c.config.ID,
-		)
+	bet, ok := c.sendBet() 
+	if !ok {
 		return
 	}
-
-	c.conn.Write([]byte(bet.String()))
-
-	msg, err := bufio.NewReader(c.conn).ReadString('\n')
+	
+	msg_read, err := bufio.NewReader(c.conn).ReadString('\n')
 	c.conn.Close()
 
 	if err != nil {
@@ -101,13 +96,38 @@ func (c *Client) handleConnection(msgID int) {
 		return
 	}
 
-	log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
-		c.config.ID,
+	msg := strings.Trim(msg_read, "\n")
+
+	if msg == bet.number {
+		log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
+		bet.idNumber,
 		msg,
-	)
+		)
+	} else {
+		log.Infof("action: apuesta_enviada | result: fail | dni: %v | numero: %v | info: did not receive server confirmation" ,
+		bet.idNumber,
+		bet.number,
+		)
+	}
+
 
 	// Wait a time between sending one message and the next one
 	time.Sleep(c.config.LoopPeriod)
+}
+
+func (c *Client) sendBet() (*Bet, bool) {
+	bet := NewBet()
+	if bet == nil {
+		c.stop<-true
+		log.Errorf("action: create_bet | result: fail | client_id: %v | error: could not create bet. ENV variables missing",
+			c.config.ID,
+		)
+		return nil, false
+	}
+	bet.agency = c.config.ID
+	c.conn.Write([]byte(bet.String()))
+
+	return bet, true
 }
 
 // StartClientLoop Send messages to the client until some time threshold is met
