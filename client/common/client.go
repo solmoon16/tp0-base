@@ -64,6 +64,7 @@ func (c *Client) createClientSocket() error {
 		)
 		conn = nil
 	}
+	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 	c.conn = conn
 	return nil
 }
@@ -99,7 +100,7 @@ func (c *Client) readResponse(bet *Bet) {
 	msg_read, err := bufio.NewReader(c.conn).ReadString('\n')
 	
 	if err != nil {
-		log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
+		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: error communicating with server (%v)",
 			c.config.ID,
 			err,
 		)
