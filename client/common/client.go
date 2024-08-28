@@ -41,6 +41,7 @@ func signalHandler(stop chan bool, client_id string) {
 // as a parameter
 func NewClient(config ClientConfig) *Client {
 	stop := make(chan bool, 1)
+	// waits for signal in different go routine
 	go signalHandler(stop, config.ID)
 
 	client := &Client{
@@ -71,6 +72,7 @@ func (c *Client) closeAll() {
 	if c.conn != nil {c.conn.Close()}
 }
 
+// Opens connection with server, sends bet and waits for confirmation
 func (c *Client) handleConnection(msgID int) {
 	// Create the connection the server in every loop iteration. Send an
 	c.createClientSocket()
@@ -84,10 +86,18 @@ func (c *Client) handleConnection(msgID int) {
 	if !ok {
 		return
 	}
-	
-	msg_read, err := bufio.NewReader(c.conn).ReadString('\n')
+
+	c.readResponse(bet)
 	c.conn.Close()
 
+	// Wait a time between sending one message and the next one
+	time.Sleep(c.config.LoopPeriod)
+}
+
+// Reads response from server and logs answer
+func (c *Client) readResponse(bet *Bet) {
+	msg_read, err := bufio.NewReader(c.conn).ReadString('\n')
+	
 	if err != nil {
 		log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
 			c.config.ID,
@@ -109,12 +119,10 @@ func (c *Client) handleConnection(msgID int) {
 		bet.number,
 		)
 	}
-
-
-	// Wait a time between sending one message and the next one
-	time.Sleep(c.config.LoopPeriod)
 }
 
+// Creates a new Bet and sends it through the connection opened. Returns the bet created and true.
+// If the bet couldn't be created returns nil and false.
 func (c *Client) sendBet() (*Bet, bool) {
 	bet := NewBet()
 	if bet == nil {
