@@ -77,6 +77,11 @@ class Server:
             close_socket(self.client_socket, 'client')
 
     def handle_message(self, msg: string):
+        """
+        Parses bet received from client and stores it
+
+        Sends response to client
+        """
         addr = self.client_socket.getpeername()
         logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
 
@@ -92,6 +97,9 @@ class Server:
         self.send_response(bet)
 
     def send_response(self, bet: Bet):
+        """
+        Sends to client bet number saved
+        """
         self.client_socket.sendall("{}\n".format(bet.number).encode('utf-8'))
     
     def close_all(self):
