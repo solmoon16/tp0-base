@@ -122,10 +122,21 @@ func (c *Client) readResponse(bet *Bet) {
 	}
 }
 
+func createBet(agency string) *Bet {
+	name := os.Getenv("NOMBRE")
+	lastName := os.Getenv("APELLIDO")
+	idNumber := os.Getenv("DOCUMENTO")
+	dateOfBirth := os.Getenv("NACIMIENTO")
+	number := os.Getenv("NUMBER")
+	return NewBet(agency, name, lastName, idNumber, dateOfBirth, number)
+}
+
 // Creates a new Bet and sends it through the connection opened. Returns the bet created and true.
 // If the bet couldn't be created returns nil and false.
 func (c *Client) sendBet() (*Bet, bool) {
-	bet := NewBet()
+
+	bet := createBet(c.config.ID)
+
 	if bet == nil {
 		c.stop<-true
 		log.Errorf("action: create_bet | result: fail | client_id: %v | error: could not create bet. ENV variables missing",

@@ -1,7 +1,6 @@
 package common 
 
 import(
-	"os"
 	"fmt"
 	"time"
 	"strconv"
@@ -18,18 +17,14 @@ type Bet struct {
 	agency string
 }
 
-func NewBet() *Bet {
-	name := os.Getenv("NOMBRE")
-	lastName := os.Getenv("APELLIDO")
-	idNumber := os.Getenv("DOCUMENTO")
-	dateOfBirth := os.Getenv("NACIMIENTO")
-	number := os.Getenv("NUMBER")
+func NewBet(agency string, name string, lastName string, idNumber string, dateOfBirth string, number string) *Bet {
 
 	if !namesAreValid(name, lastName) || !dateIsValid(dateOfBirth) || !numbersAreValid(idNumber, number){
 		return nil
 	}
 
 	bet := &Bet{
+		agency: agency,
 		name: name, 
 		lastName: lastName,
 		idNumber: idNumber,
