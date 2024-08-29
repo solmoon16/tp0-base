@@ -82,25 +82,29 @@ class Server:
 
         Sends response to client
         """
-        addr = self.client_socket.getpeername()
-        logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
 
         msg_list = msg.split(";")
-        if len(msg_list) < 6:
-            logging.error("action: apuesta_almacenada | result: fail | error: bet doesn't have all necessary information")
-            return
-            
-        bet = Bet(msg_list[0], msg_list[1], msg_list[2], msg_list[3], msg_list[4], msg_list[5])
-        store_bets([bet])
-        logging.info(f'action: apuesta_almacenada | result: success | dni:{bet.document} | numero: {bet.number}')
+        bets = []
+        for msg in msg_list:
+            bet = handle_bet(msg)
+            if bet is None:
+                break
+            bets.append(bet)
+        
+        if len(bets) != len(msg_list):
+            logging.error(f'action: apuesta_recibida | result: fail | cantidad: {len(msg_list)}')
+            bets = []
+        else:
+            store_bets(bets)
+            logging.info(f'action: apuesta_recibida | result: success | cantidad: {len(bets)}')
+        
+        self.send_response(bets)
 
-        self.send_response(bet)
-
-    def send_response(self, bet: Bet):
+    def send_response(self, bets: list[Bet]):
         """
         Sends to client bet number saved
         """
-        self.client_socket.sendall("{}\n".format(bet.number).encode('utf-8'))
+        self.client_socket.sendall("{}\n".format(len(bets)).encode('utf-8'))
     
     def close_all(self):
         self._server_socket = close_socket(self._server_socket, 'server')
@@ -111,4 +115,12 @@ def close_socket(sock: socket, name: string):
         logging.info(f'action: closing socket | info: closing {name}')
         sock.close()
         sock = None
-    sock
+    return sock
+
+def handle_bet(betStr: string):
+    params = betStr.split(",")
+    if len(params) < 6:
+        return None
+    
+    return Bet(params[0], params[1], params[2], params[3], params[4], params[5])
+    
