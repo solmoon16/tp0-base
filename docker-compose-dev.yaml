@@ -30,6 +30,7 @@ services:
       - server
     volumes:
       - ${PWD}/client/config.yaml:/config.yaml
+      - ${PWD}/.data:/.data
 
 networks:
   testing_net:
