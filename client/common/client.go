@@ -8,11 +8,13 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"fmt"
 
 	"github.com/op/go-logging"
 )
 
 var log = logging.MustGetLogger("log")
+const PATH = "./.data/agency-"
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
@@ -69,6 +71,25 @@ func (c *Client) createClientSocket() error {
 	return nil
 }
 
+// StartClientLoop Send messages to the client until some time threshold is met
+func (c *Client) StartClientLoop() {
+	// There is an autoincremental msgID to identify every message sent
+	// Messages if the message amount threshold has not been surpassed
+
+	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
+		select {
+		case stop := <-c.stop:
+			if stop {
+				c.closeAll()
+				return
+			}
+		default:
+			c.handleConnection(msgID)
+		}
+	}
+	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+}
+
 func (c *Client) closeAll() {
 	if c.conn != nil {c.conn.Close()}
 }
@@ -122,13 +143,14 @@ func (c *Client) readResponse(bet *Bet) {
 	}
 }
 
-func createBet(agency string) *Bet {
-	name := os.Getenv("NOMBRE")
-	lastName := os.Getenv("APELLIDO")
-	idNumber := os.Getenv("DOCUMENTO")
-	dateOfBirth := os.Getenv("NACIMIENTO")
-	number := os.Getenv("NUMBER")
-	return NewBet(agency, name, lastName, idNumber, dateOfBirth, number)
+func createBet(agency string, betStr string) *Bet {
+
+	info := strings.Split(betStr, ',')
+	if len(info) < 5 {
+		return nil
+	}
+
+	return NewBet(agency, info[0], info[1], info[2], info[3], info[4])
 }
 
 // Creates a new Bet and sends it through the connection opened. Returns the bet created and true.
@@ -150,21 +172,27 @@ func (c *Client) sendBet() (*Bet, bool) {
 	return bet, true
 }
 
-// StartClientLoop Send messages to the client until some time threshold is met
-func (c *Client) StartClientLoop() {
-	// There is an autoincremental msgID to identify every message sent
-	// Messages if the message amount threshold has not been surpassed
+func (c *Client) SendBets() {
+	file := readBetsFile(c.config.ID)
+	defer file.Close()
 
-	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
-		select {
-		case stop := <-c.stop:
-			if stop {
-				c.closeAll()
-				return
-			}
-		default:
-			c.handleConnection(msgID)
-		}
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		betStr := scanner.Text()
+		bet := createBet(id, betStr)
+		// crear batch
+		// guardar en mapa?
+		// enviar al servidor
 	}
-	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+}
+
+func readBetsFile(id string) *File {
+	path := fmt.Sprintf("%v%v.csv", PATH, id)
+	file, err := os.Open(path)
+	if err != nil {
+		log.Errorf("action: open_file | result: fail | client_id: %v | error: %v", 
+			id,
+			err,
+		)
+	}
 }
