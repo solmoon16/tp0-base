@@ -22,6 +22,7 @@ type ClientConfig struct {
 	ServerAddress string
 	LoopAmount    int
 	LoopPeriod    time.Duration
+	BatchMaxAmount int
 }
 
 // Client Entity that encapsulates how
@@ -56,7 +57,7 @@ func NewClient(config ClientConfig) *Client {
 // CreateClientSocket Initializes client socket. In case of
 // failure, error is printed in stdout/stderr and exit 1
 // is returned
-func (c *Client) createClientSocket() error {
+func (c *Client) CreateClientSocket() error {
 	conn, err := net.Dial("tcp", c.config.ServerAddress)
 	if err != nil {
 		log.Criticalf(
@@ -97,19 +98,14 @@ func (c *Client) closeAll() {
 // Opens connection with server, sends bet and waits for confirmation
 func (c *Client) handleConnection(msgID int) {
 	// Create the connection the server in every loop iteration. Send an
-	c.createClientSocket()
+	c.CreateClientSocket()
 
 	if c.conn == nil {
 		c.stop<-true
 		return
 	}
 
-	bet, ok := c.sendBet() 
-	if !ok {
-		return
-	}
-
-	c.readResponse(bet)
+	c.SendBets()
 	c.conn.Close()
 
 	// Wait a time between sending one message and the next one
@@ -117,7 +113,7 @@ func (c *Client) handleConnection(msgID int) {
 }
 
 // Reads response from server and logs answer
-func (c *Client) readResponse(bet *Bet) {
+func (c *Client) readResponse() {
 	msg_read, err := bufio.NewReader(c.conn).ReadString('\n')
 	
 	if err != nil {
@@ -130,63 +126,60 @@ func (c *Client) readResponse(bet *Bet) {
 
 	msg := strings.Trim(msg_read, "\n")
 
-	if msg == bet.number {
-		log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
-		bet.idNumber,
-		msg,
+	if msg == "0" {
+		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: server could not process batch" ,
+		c.config.ID,
 		)
-	} else {
-		log.Infof("action: apuesta_enviada | result: fail | dni: %v | numero: %v | info: did not receive server confirmation" ,
-		bet.idNumber,
-		bet.number,
-		)
-	}
+	} 
+
 }
 
 func createBet(agency string, betStr string) *Bet {
 
-	info := strings.Split(betStr, ',')
+	info := strings.Split(betStr, ",")
 	if len(info) < 5 {
 		return nil
 	}
-
 	return NewBet(agency, info[0], info[1], info[2], info[3], info[4])
 }
 
-// Creates a new Bet and sends it through the connection opened. Returns the bet created and true.
-// If the bet couldn't be created returns nil and false.
-func (c *Client) sendBet() (*Bet, bool) {
-
-	bet := createBet(c.config.ID)
-
-	if bet == nil {
-		c.stop<-true
-		log.Errorf("action: create_bet | result: fail | client_id: %v | error: could not create bet. ENV variables missing",
-			c.config.ID,
-		)
-		return nil, false
-	}
-	bet.agency = c.config.ID
-	c.conn.Write([]byte(bet.String()))
-
-	return bet, true
+func (c *Client) sendBatch(batch []string) int{
+	b := strings.Join(batch, ";")
+	c.conn.Write([]byte(b))
+	return len(batch)
 }
 
 func (c *Client) SendBets() {
 	file := readBetsFile(c.config.ID)
 	defer file.Close()
 
+	var betsToSend[] string
+	line := 0
+
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		betStr := scanner.Text()
-		bet := createBet(id, betStr)
-		// crear batch
-		// guardar en mapa?
-		// enviar al servidor
+		line += 1
+		bet := createBet(c.config.ID, betStr)
+		if bet == nil {
+			log.Errorf("action: create_bet | result: fail | client_id: %v | error: bet in line %v had invalid parameters", c.config.ID, line)
+			continue
+		}
+		betsToSend = append(betsToSend, bet.String())
+		if line % c.config.BatchMaxAmount == 0 {
+			c.sendBatch(betsToSend)
+			c.readResponse()
+			betsToSend = []string{}
+		}
+	}
+
+	if len(betsToSend) != 0 {
+		c.sendBatch(betsToSend)
+		c.readResponse()
 	}
 }
 
-func readBetsFile(id string) *File {
+func readBetsFile(id string) *os.File {
 	path := fmt.Sprintf("%v%v.csv", PATH, id)
 	file, err := os.Open(path)
 	if err != nil {
@@ -195,4 +188,5 @@ func readBetsFile(id string) *File {
 			err,
 		)
 	}
+	return file
 }
