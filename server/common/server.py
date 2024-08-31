@@ -71,11 +71,11 @@ class Server:
         old_msg = ""
         try:
             while True and self.client_socket is not None:
-                read = self.client_socket.recv(1024).decode('utf-8')
+                read = self.client_socket.recv(1024).decode('utf-8', 'ignore')
                 if not read:
                     break
                 msg = old_msg + read
-                old_msg = read
+                old_msg = msg
                 try:
                     sep = msg.index(END_BATCH)             
                     batch = msg[:sep]   
