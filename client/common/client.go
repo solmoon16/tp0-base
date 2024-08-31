@@ -156,7 +156,7 @@ func createBet(agency string, betStr string) *Bet {
 func (c *Client) sendBatch(batch []string) int{
 	join := strings.Join(batch, BET_SEPARATOR)
 	b := fmt.Sprintf("%s\n", join)
-	n, err := c.conn.Write([]byte(b))
+	_, err := c.conn.Write([]byte(b))
 	if err != nil {
 		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: error communicating with server (%v)",
 			c.config.ID,
