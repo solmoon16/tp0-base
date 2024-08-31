@@ -140,7 +140,7 @@ func (c *Client) readResponse(batchSize int) {
 	} else {
 		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: server could not process batch | cantidad: %v" ,
 		c.config.ID, 
-		msg
+		msg,
 		)
 	} 
 
