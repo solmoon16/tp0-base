@@ -106,18 +106,18 @@ class Server:
         
         if len(bets) != len(msg_list):
             logging.error(f'action: apuesta_recibida | result: fail | cantidad: {len(msg_list)}')
-            bets = []
         else:
             store_bets(bets)
             logging.info(f'action: apuesta_recibida | result: success | cantidad: {len(bets)}')
-        
-        self.send_response(bets)
 
-    def send_response(self, bets: list[Bet]):
+        self.send_response(len(bets))
+        
+
+    def send_response(self, bets_num: int):
         """
         Sends to client bet number saved
         """
-        self.client_socket.sendall("{}\n".format(len(bets)).encode('utf-8'))
+        self.client_socket.sendall("{}\n".format(bets_num).encode('utf-8'))
     
     def close_all(self):
         self._server_socket = close_socket(self._server_socket, 'server')

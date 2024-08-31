@@ -135,13 +135,14 @@ func (c *Client) readResponse(batchSize int) {
 
 	msg := strings.Trim(msg_read, END_SERVER_MESSAGE)
 
-	if msg == EMPTY_BATCH {
-		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: server could not process batch" ,
-		c.config.ID,
-		)
-	} else if msg == fmt.Sprintf("%v", batchSize) {
+	if msg == fmt.Sprintf("%v", batchSize) {
 		log.Infof("action: apuesta_enviada | result: success | cantidad: %v", msg)
-	}
+	} else {
+		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: server could not process batch | cantidad: %v" ,
+		c.config.ID, 
+		msg
+		)
+	} 
 
 }
 
