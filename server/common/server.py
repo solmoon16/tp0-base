@@ -6,6 +6,9 @@ import string
 
 from common.utils import Bet, store_bets
 
+END_BATCH = "\n"
+BET_SEPARATOR = ";"
+
 class ServerSignalHandler:
     def __init__(self, server):
         signal.signal(signal.SIGTERM, self.close_all)
@@ -35,7 +38,7 @@ class Server:
 
         # TODO: Modify this program to handle signal to graceful shutdown
         # the server
-        while True:
+        while True and self._server_socket is not None:
             self.client_socket = self.__accept_new_connection()
             if self.client_socket is None:
                 break
@@ -67,20 +70,16 @@ class Server:
         """
         old_msg = ""
         try:
-            while True:
-                read = self.client_socket.recv(1024).rstrip().decode('utf-8')
+            while True and self.client_socket is not None:
+                read = self.client_socket.recv(1024).decode('utf-8')
                 if not read:
                     break
                 msg = old_msg + read
                 old_msg = read
-                print(f"msg:{msg}\n")
-                print(f"old:{old_msg}\n")
                 try:
-                    sep = msg.index("**")             
-                    batch = msg[:sep]
-                    print(f"batch:{batch}\n")   
-                    old_msg = msg[sep+2:]
-                    print(f"old:{old_msg}\n")
+                    sep = msg.index(END_BATCH)             
+                    batch = msg[:sep]   
+                    old_msg = msg[sep+1:]
                     self.handle_message(batch)
                 finally:
                     continue
@@ -97,7 +96,7 @@ class Server:
         Sends response to client
         """
 
-        msg_list = msg.split(";")
+        msg_list = msg.split(BET_SEPARATOR)
         bets = []
         for msg in msg_list:
             bet = handle_bet(msg)
