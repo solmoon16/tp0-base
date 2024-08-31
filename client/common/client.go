@@ -53,7 +53,7 @@ func NewClient(config ClientConfig) *Client {
 	// waits for signal in different go routine
 	go signalHandler(stop, config.ID)
 	if config.BatchMaxAmount == 0 {
-		config.BatchMaxAmount = 100
+		config.BatchMaxAmount = 120
 	}
 
 	client := &Client{
