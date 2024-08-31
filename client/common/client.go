@@ -15,6 +15,12 @@ import (
 
 var log = logging.MustGetLogger("log")
 const PATH = "./.data/agency-"
+const EXTENSION = ".csv"
+const END_BATCH = '\n'
+const END_SERVER_MESSAGE = "\n"
+const BET_SEPARATOR = ";"
+const FIELD_SEPARATOR = ","
+const EMPTY_BATCH = "0"
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
@@ -46,6 +52,9 @@ func NewClient(config ClientConfig) *Client {
 	stop := make(chan bool, 1)
 	// waits for signal in different go routine
 	go signalHandler(stop, config.ID)
+	if config.BatchMaxAmount == 0 {
+		config.BatchMaxAmount = 25
+	}
 
 	client := &Client{
 		config: config,
@@ -67,7 +76,7 @@ func (c *Client) CreateClientSocket() error {
 		)
 		conn = nil
 	}
-	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	//conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 	c.conn = conn
 	return nil
 }
@@ -105,7 +114,7 @@ func (c *Client) handleConnection(msgID int) {
 		return
 	}
 
-	c.SendBets()
+	c.sendBets(msgID)
 	c.conn.Close()
 
 	// Wait a time between sending one message and the next one
@@ -113,7 +122,7 @@ func (c *Client) handleConnection(msgID int) {
 }
 
 // Reads response from server and logs answer
-func (c *Client) readResponse() {
+func (c *Client) readResponse(batchSize int) {
 	msg_read, err := bufio.NewReader(c.conn).ReadString('\n')
 	
 	if err != nil {
@@ -124,19 +133,20 @@ func (c *Client) readResponse() {
 		return
 	}
 
-	msg := strings.Trim(msg_read, "\n")
+	msg := strings.Trim(msg_read, END_SERVER_MESSAGE)
 
-	if msg == "0" {
+	if msg == EMPTY_BATCH {
 		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: server could not process batch" ,
 		c.config.ID,
 		)
-	} 
+	} else if msg == fmt.Sprintf("%v", batchSize) {
+		log.Infof("action: apuesta_enviada | result: success | cantidad: %v", msg)
+	}
 
 }
 
 func createBet(agency string, betStr string) *Bet {
-
-	info := strings.Split(betStr, ",")
+	info := strings.Split(betStr, FIELD_SEPARATOR)
 	if len(info) < 5 {
 		return nil
 	}
@@ -144,12 +154,20 @@ func createBet(agency string, betStr string) *Bet {
 }
 
 func (c *Client) sendBatch(batch []string) int{
-	b := strings.Join(batch, ";")
-	c.conn.Write([]byte(b))
+	join := strings.Join(batch, BET_SEPARATOR)
+	b := fmt.Sprintf("%s\n", join)
+	n, err := c.conn.Write([]byte(b))
+	if err != nil {
+		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: error communicating with server (%v)",
+			c.config.ID,
+			err,
+		)
+		return 0
+	}
 	return len(batch)
 }
 
-func (c *Client) SendBets() {
+func (c* Client) sendBets(batchNum int) {
 	file := readBetsFile(c.config.ID)
 	defer file.Close()
 
@@ -158,29 +176,36 @@ func (c *Client) SendBets() {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		betStr := scanner.Text()
-		line += 1
-		bet := createBet(c.config.ID, betStr)
-		if bet == nil {
-			log.Errorf("action: create_bet | result: fail | client_id: %v | error: bet in line %v had invalid parameters", c.config.ID, line)
-			continue
+		if lineInBatch(line, batchNum, c.config.BatchMaxAmount) {
+			betStr := scanner.Text()
+			bet := createBet(c.config.ID, betStr)
+			if bet == nil {
+				log.Errorf("action: create_bet | result: fail | client_id: %v | error: bet in line %v had invalid parameters", c.config.ID, line)
+				continue
+			}
+			betsToSend = append(betsToSend, bet.String())
 		}
-		betsToSend = append(betsToSend, bet.String())
-		if line % c.config.BatchMaxAmount == 0 {
-			c.sendBatch(betsToSend)
-			c.readResponse()
+	
+		if line == batchNum*c.config.BatchMaxAmount{
+			size := c.sendBatch(betsToSend)
+			c.readResponse(size)
 			betsToSend = []string{}
 		}
+		line += 1
 	}
 
 	if len(betsToSend) != 0 {
-		c.sendBatch(betsToSend)
-		c.readResponse()
+		size := c.sendBatch(betsToSend)
+		c.readResponse(size)
 	}
 }
 
+func lineInBatch(line int, batchNum int, batchSize int) bool {
+	return (batchNum-1)*batchSize <= line && line < batchNum*batchSize
+}
+
 func readBetsFile(id string) *os.File {
-	path := fmt.Sprintf("%v%v.csv", PATH, id)
+	path := fmt.Sprintf("%v%v%v", PATH, id, EXTENSION)
 	file, err := os.Open(path)
 	if err != nil {
 		log.Errorf("action: open_file | result: fail | client_id: %v | error: %v", 
