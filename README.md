@@ -61,3 +61,13 @@ Desde el lado del servidor, para evitar el _short read_ es necesario leer en loo
 Cuando el servidor recibe una apuesta del cliente, la almacena utilizando la función `store_bet` y le envía al cliente el número de apuesta almacenado. Cuando el cliente lo recibe deja constancia en el log. El cliente tiene un límite de tiempo de lectura, y en caso de que se supere considera que el servidor no le contestó a tiempo y que hubo un error en la comunicación.
 
 Como parte del protocolo, a la hora de construir una apuesta, se revisa que se tenga toda la información necesaria y que tenga el formato indicado. Según un análisis realizado a los archivos .csv que contienen múltiples apuestas, se definieron tamaños máximos para el nombre y apellido de cada apuesta. Además, se verifica que la fecha de nacimiento esté en el formato indicado, que el documento tenga sentido (número y con 8 caracteres) y que el número de apuesta sea un número. En caso de que no se cumpla alguna de esas validaciones, no se crea la apuesta.
+
+### Ejercicio 6
+
+En este ejercicio, en vez de enviar una sola apuesta la idea es enviar apuestas en _batches_. Dados los tamaños definidos en el ejercicio anterior y la limitación de 8kb para un batch, se decidió que el tamaño máximo sea 120 apuestas por batch, quedando dentro del rango definido pero enviando de a múltiples apuestas, acelerando el procesamiento por parte del servidor.
+
+Los clientes tienen loops cuyo tamaño se indica en el archivo de configuración. Por cada ejecución del loop, se envía un batch de apuestas al servidor. Para esto, se utiliza la función `sendBets`, que se encarga de abrir el archivo correspondiente de esa agencia y obtener las apuestas que corresponden a ese número de batch. Luego, las une todas y se las envía al servidor para que este las procese. Para delimitar el fin de un batch e indicarle al servidor que ya se terminó de enviar, se utiliza el caracter '\n'.
+
+Desde el lado del servidor, lee del socket del cliente constantemente hasta que el cliente lo cierra, indicando el fin de la conexión. Mientras lee, va guardando en un buffer propio todo el mensaje hasta que se encuentra con un '\n', ya que eso indica que recibió todo un batch. En ese caso, procesa todas las apuestas recibidas convirtiéndolas en objetos `Bet` y utilizando `store_bet` para almacenarlas. Si la conexión sigue abierta, sigue leyendo.
+
+Luego de guardar todas las apuestas, el servidor le envía al cliente la cantidad de apuestas que procesó. En caso de que hayan sido menos que un batch, tanto cliente como servidor dejan logs indicando que hubo un error.
