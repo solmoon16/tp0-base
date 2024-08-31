@@ -1,3 +1,4 @@
+from operator import index
 import signal
 import socket
 import logging
@@ -64,15 +65,28 @@ class Server:
         If a problem arises in the communication with the client, the
         client socket will also be closed
         """
+        old_msg = ""
         try:
             while True:
-                msg = self.client_socket.recv(1024).rstrip().decode('utf-8')
-                if not msg:
+                read = self.client_socket.recv(1024).rstrip().decode('utf-8')
+                if not read:
                     break
-                self.handle_message(msg)
-
+                msg = old_msg + read
+                old_msg = read
+                print(f"msg:{msg}\n")
+                print(f"old:{old_msg}\n")
+                try:
+                    sep = msg.index("**")             
+                    batch = msg[:sep]
+                    print(f"batch:{batch}\n")   
+                    old_msg = msg[sep+2:]
+                    print(f"old:{old_msg}\n")
+                    self.handle_message(batch)
+                finally:
+                    continue
+        
         except OSError as e:
-            logging.error("action: receive_message | result: fail | error: {e}")
+            logging.error(f"action: receive_message | result: fail | error: {e}")
         finally:
             close_socket(self.client_socket, 'client')
 
