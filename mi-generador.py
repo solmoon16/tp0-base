@@ -24,6 +24,7 @@ client = services['client1']
 for i in range(0, client_num):
     name = 'client'+str(i+1)
     client['container_name'] = name
+    client['environment'] = [f'CLI_ID={i+1}', 'CLI_LOG_LEVEL=DEBUG']
     services[name] = client.copy()
 
 yaml.Dumper.ignore_aliases = lambda *args : True
