@@ -76,9 +76,9 @@ class Server:
             return c
     
     def close_all(self):
-        logging.info('action: closing socket | info: closing server socket | result: in_progress')
+        logging.info('action: closing socket | result: success | info: closing server socket ')
         self._server_socket.close()
         if self.client_socket is not None:
-            logging.info('action: closing socket | info: closing client socket | result: in_progress')
+            logging.info('action: closing socket | result: success | info: closing client socket')
             self.client_socket.close()
             self.client_socket = None
