@@ -44,7 +44,7 @@ class Server:
         # the server
         while True and self._server_socket is not None:
             if self.clients_done():
-                self.do_raffle()
+                self.do_draw()
                 break
             self.client_socket = self.__accept_new_connection()
             if self.client_socket is None:
@@ -148,7 +148,7 @@ class Server:
             
         return True
             
-    def do_raffle(self):
+    def do_draw(self):
         logging.info(f'action: sorteo | result: success')
         bets = load_bets()
         winners = []
