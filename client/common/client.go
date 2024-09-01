@@ -83,16 +83,11 @@ func (c *Client) CreateClientSocket() error {
 
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
-	
-	select {
-	case stop := <-c.stop:
-		if stop {
-			c.closeAll()
-			return
-		}
-	default:
+
+	if !c.stopClient() {
 		c.handleConnection()
 	}
+
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 }
 
@@ -115,7 +110,7 @@ func (c *Client) handleConnection() {
 	c.conn.Close()
 }
 
-func (c*Client) checkClientStatus() bool {
+func (c*Client) stopClient() bool {
 	select {
 	case stop := <-c.stop:
 		if stop {
@@ -138,7 +133,7 @@ func (c* Client) sendDone() {
 
 func (c *Client) waitWinner() {
 	c.conn.SetReadDeadline(time.Now().Add(1 * time.Second))
-	if c.checkClientStatus() {
+	if c.stopClient() {
 		c.closeAll()
 		return
 	}
@@ -149,13 +144,14 @@ func (c *Client) waitWinner() {
 			err,
 		)
 		c.waitWinner()
+		return
 	}
 	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", msg)
 }
 
 // Reads response from server and logs answer
 func (c *Client) readResponse(batchSize int) {
-	if c.checkClientStatus(){
+	if c.stopClient(){
 		c.closeAll()
 		return 
 	}
@@ -191,7 +187,7 @@ func createBet(agency string, betStr string) *Bet {
 }
 
 func (c *Client) sendBatch(batch []string) int{
-	if c.checkClientStatus() {
+	if c.stopClient() {
 		c.closeAll()
 		return 0
 	}
@@ -217,7 +213,7 @@ func (c* Client) sendBets() {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		if c.checkClientStatus() {
+		if c.stopClient() {
 			c.closeAll()
 			return
 		}
