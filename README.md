@@ -20,7 +20,7 @@ En caso de que no se reciban ambos parámetros o la cantidad de clientes no sea 
 
 Para que los archivos de configuración sean inyectados en los contenedores y persistidos por fuera de la imagen se realizó un 'build mount' por cada archivo, montando así un archivo específico en un contenedor.
 
-Si bien se realiza la operación en el DockerCompose con la clave 'volume', no es un volumen en sí ya que se está montando un solo archivo en cada caso, especificando las direcciones origen y destino.
+Si bien se realiza la operación en el DockerCompose con la clave 'volume', no es un volumen en sí ya que se está montando un solo archivo en cada caso, especificando las direcciones origen y destino. Como origen, se obtiene el directorio en el cual se está ejecutando el script y luego se le agrega el path relativo, para obtener el path absoluto de cada archivo de configuración.
 
 También se eliminó la línea que copiaba el archivo de configuración del Dockerfile del cliente, y se creó un archivo .dockerignore para que no se copien los archivos de configuración cuando se reinician las imágenes de los contenedores. En caso contrario, como se copiaba toda la carpeta los archivos iban a ser copiados nuevamente.
 
@@ -28,7 +28,7 @@ El funcionamiento y ejecución es igual que antes, con la diferencia de que si s
 
 ### Ejercicio N°3
 
-Se creó un script de bash `validar-echo-server.sh` que recibe por parámetro un mensaje para enviarle al servidor y corroborar que esté funcionando adecuadamente. En caso de que el servidor retorne el mismo mensaje, se imprime `action: test_echo_server | result: success` y en caso contrario `action: test_echo_server | result: fail`.
+Se creó un script de bash `validar-echo-server.sh` que envía un mensaje al servidor y corrobora que esté funcionando adecuadamente. En caso de que el servidor retorne el mismo mensaje, se imprime `action: test_echo_server | result: success` y en caso contrario `action: test_echo_server | result: fail`.
 
 En caso de que el servidor esté apagado o la red no esté levantada, primero se imprimirá un error de docker informando la situación.
 
@@ -37,6 +37,8 @@ Para ejecutarlo hay que correr:
 ```bash
 ./validar-echo.server.sh $mensaje
 ```
+
+Para cambiar el mensaje que se le envía al servidor hay que editar la variable `message` dentro del script.
 
 ### Ejercicio N°4
 
