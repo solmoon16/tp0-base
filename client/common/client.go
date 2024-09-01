@@ -127,25 +127,30 @@ func (c*Client) checkClientStatus() bool {
 	return false
 }
 
+func (c* Client) sendDone() {
+	s := fmt.Sprintf("%s:%v", DONE, c.config.ID)
+	_, err := c.conn.Write([]byte(s))
+	if err != nil {
+		log.Errorf("action: mensaje_enviado | result: fail | client_id: %v | error: error communicating with server (%v)", c.config.ID, err,)
+	}
+
+}
+
 func (c *Client) waitWinner() {
-	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	c.conn.SetReadDeadline(time.Now().Add(1 * time.Second))
 	if c.checkClientStatus() {
 		c.closeAll()
 		return
 	}
-	// mover el done para afuera y repetir esta función
-	s := fmt.Sprintf("%s:%v", DONE, c.config.ID)
-	c.conn.Write([]byte(s))
 	msg, err := bufio.NewReader(c.conn).ReadString('\n')
 	if err != nil {
 		log.Errorf("action: consulta_ganadores | result: fail | client_id: %v | error: error communicating with server (%v)",
 			c.config.ID,
 			err,
 		)
-		return
+		c.waitWinner()
 	}
 	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", msg)
-	
 }
 
 // Reads response from server and logs answer
@@ -242,6 +247,8 @@ func (c* Client) sendBets() {
 		}
 		c.readResponse(size)
 	}
+
+	c.sendDone()
 }
 
 func readBetsFile(id string) *os.File {
