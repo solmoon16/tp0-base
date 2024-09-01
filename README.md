@@ -49,3 +49,13 @@ Desde el lado del servidor, cuando se recibe la señal SIGTERM, se notifica inme
 El cliente solo tiene un socket abierto que abre y cierra cada vez que se conecta con el servidor. Cuando se recibe la señal SIGTERM, termina la conexión que tenía abierta y no vuelve a abrir otra. Si el socket que estaba utilizando queda abierto, se cierra.
 
 Dado el caso de que haya más recursos a manejar en un futuro, las estructuras armadas ya dan lugar a que se libere todo lo utilizado por cada entidad.
+
+Se puede probar corriendo los procesos y enviándoles la señal SIGTERM con el comando
+
+```bash
+kill -15 ${pid}
+```
+
+Al hacerlo, se puede observar que tanto el servidor como el cliente finalizan con código 0 e indican en el log qué sockets se están cerrando.
+
+También se agregó un _graceful shutdown_ para la señal SIGINT, por lo que se puede observar el mismo comportamiento si se hace Ctrl+C en la terminal donde corren los procesos.
