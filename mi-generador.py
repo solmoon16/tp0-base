@@ -8,10 +8,10 @@ dic = {'name': 'tp0',
        'services': 
             {'server': 
                 {'container_name': 'server', 'image': 'server:latest', 'entrypoint': 'python3 /main.py', 'networks': ['testing_net'], 
-                 'volumes': ['$/home/solmoon/distribuidos/tp0-base/server/config.ini:/config.ini']}, 
+                 'volumes': ['/home/solmoon/distribuidos/tp0-base/server/config.ini:/config.ini']}, 
             'client1': 
                 {'container_name': 'client1', 'image': 'client:latest', 'entrypoint': '/client','networks': ['testing_net'], 'depends_on': ['server'],
-                 'volumes': ['$/home/solmoon/distribuidos/tp0-base/client/config.yaml:/config.yaml']
+                 'volumes': ['/home/solmoon/distribuidos/tp0-base/client/config.yaml:/config.yaml']
                 }
             }, 
         'networks': 
