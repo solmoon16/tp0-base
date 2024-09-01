@@ -34,7 +34,7 @@ func signalHandler(stop chan bool, client_id string) {
 	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT)
 	sig := <-sigs
 	stop <- true
-	log.Infof("action: received signal %v | info: closing socket | client_id: %v", sig, client_id)
+	log.Infof("action: received signal %v | result: success | info: closing socket | client_id: %v", sig, client_id)
 }
 
 // NewClient Initializes a new client receiving the configuration
