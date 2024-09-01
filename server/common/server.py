@@ -4,10 +4,12 @@ import socket
 import logging
 import string
 
-from common.utils import Bet, store_bets
+from common.utils import Bet, has_won, load_bets, store_bets
 
 END_BATCH = "\n"
 BET_SEPARATOR = ";"
+AGENCIES_NUM = 5
+DONE = "DONE:"
 
 class ServerSignalHandler:
     def __init__(self, server):
@@ -26,6 +28,8 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         self.client_socket = None
+        self.client_connections = {}
+        self.client_status = {}
 
     def run(self):
         """
@@ -39,10 +43,15 @@ class Server:
         # TODO: Modify this program to handle signal to graceful shutdown
         # the server
         while True and self._server_socket is not None:
+            if self.clients_done():
+                self.do_raffle()
+                break
             self.client_socket = self.__accept_new_connection()
             if self.client_socket is None:
-                break
+                continue
             self.__handle_client_connection()
+        
+            
     
     def __accept_new_connection(self):
         """
@@ -77,17 +86,23 @@ class Server:
                 msg = old_msg + read
                 old_msg = msg
                 try:
-                    sep = msg.index(END_BATCH)             
-                    batch = msg[:sep]   
-                    old_msg = msg[sep+1:]
-                    self.handle_message(batch)
-                finally:
-                    continue
-        
+                    sep = msg.index(DONE)
+                    client_id = msg[sep+len(DONE):]
+                    self.client_status.update({client_id: True})
+                    self.client_connections.update({client_id: self.client_socket})
+                    return
+                except:
+                    try:
+                        sep = msg.index(END_BATCH)             
+                        batch = msg[:sep]   
+                        old_msg = msg[sep+1:]
+                        self.handle_message(batch)
+                    finally:
+                        continue
+                    
         except OSError as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
-        finally:
-            close_socket(self.client_socket, 'client')
+            
 
     def handle_message(self, msg: string):
         """
@@ -110,18 +125,47 @@ class Server:
             store_bets(bets)
             logging.info(f'action: apuesta_recibida | result: success | cantidad: {len(bets)}')
 
-        self.send_response(len(bets))
+        self.send_response(self.client_socket, len(bets))
         
 
-    def send_response(self, bets_num: int):
+    def send_response(self, client_socket, bets_num: int):
         """
         Sends to client bet number saved
         """
-        self.client_socket.sendall("{}\n".format(bets_num).encode('utf-8'))
+        client_socket.sendall("{}\n".format(bets_num).encode('utf-8'))
     
     def close_all(self):
         self._server_socket = close_socket(self._server_socket, 'server')
         self.client_socket = close_socket(self.client_socket, 'client')
+    
+    def clients_done(self) -> bool: 
+        if len(self.client_status.keys()) < AGENCIES_NUM:
+            return False
+
+        for v in self.client_status.values():
+            if v == False:
+                return False
+            
+        return True
+            
+    def do_raffle(self):
+        logging.info(f'action: sorteo | result: success')
+        bets = load_bets()
+        winners = []
+        for b in bets:
+            if has_won(b):
+                winners.append(b)
+        self.send_results(winners)
+    
+    def send_results(self, winners: list[Bet]):
+        winsPerAgency = [0 for x in range(AGENCIES_NUM)]
+        for win in winners:
+            winsPerAgency[win.agency-1] += 1
+        for (agency, conn) in self.client_connections.items():
+            agency = int(agency)
+            self.send_response(conn, winsPerAgency[agency-1])
+            close_socket(conn, f"client{agency}")
+
 
 def close_socket(sock: socket, name: string):
     if sock is not None:

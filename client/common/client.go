@@ -21,6 +21,7 @@ const END_SERVER_MESSAGE = "\n"
 const BET_SEPARATOR = ";"
 const FIELD_SEPARATOR = ","
 const EMPTY_BATCH = "0"
+const DONE = "DONE"
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
@@ -76,26 +77,21 @@ func (c *Client) CreateClientSocket() error {
 		)
 		conn = nil
 	}
-	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 	c.conn = conn
 	return nil
 }
 
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
-	// There is an autoincremental msgID to identify every message sent
-	// Messages if the message amount threshold has not been surpassed
-
-	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
-		select {
-		case stop := <-c.stop:
-			if stop {
-				c.closeAll()
-				return
-			}
-		default:
-			c.handleConnection(msgID)
+	
+	select {
+	case stop := <-c.stop:
+		if stop {
+			c.closeAll()
+			return
 		}
+	default:
+		c.handleConnection()
 	}
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 }
@@ -105,7 +101,7 @@ func (c *Client) closeAll() {
 }
 
 // Opens connection with server, sends bet and waits for confirmation
-func (c *Client) handleConnection(msgID int) {
+func (c *Client) handleConnection() {
 	// Create the connection the server in every loop iteration. Send an
 	c.CreateClientSocket()
 
@@ -114,15 +110,51 @@ func (c *Client) handleConnection(msgID int) {
 		return
 	}
 
-	c.sendBets(msgID)
+	c.sendBets()
+	c.waitWinner()
 	c.conn.Close()
+}
 
-	// Wait a time between sending one message and the next one
-	time.Sleep(c.config.LoopPeriod)
+func (c*Client) checkClientStatus() bool {
+	select {
+	case stop := <-c.stop:
+		if stop {
+			return true
+		}
+	default:
+		return false
+	}
+	return false
+}
+
+func (c *Client) waitWinner() {
+	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	if c.checkClientStatus() {
+		c.closeAll()
+		return
+	}
+	// mover el done para afuera y repetir esta función
+	s := fmt.Sprintf("%s:%v", DONE, c.config.ID)
+	c.conn.Write([]byte(s))
+	msg, err := bufio.NewReader(c.conn).ReadString('\n')
+	if err != nil {
+		log.Errorf("action: consulta_ganadores | result: fail | client_id: %v | error: error communicating with server (%v)",
+			c.config.ID,
+			err,
+		)
+		return
+	}
+	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", msg)
+	
 }
 
 // Reads response from server and logs answer
 func (c *Client) readResponse(batchSize int) {
+	if c.checkClientStatus(){
+		c.closeAll()
+		return 
+	}
+
 	msg_read, err := bufio.NewReader(c.conn).ReadString('\n')
 	
 	if err != nil {
@@ -135,15 +167,14 @@ func (c *Client) readResponse(batchSize int) {
 
 	msg := strings.Trim(msg_read, END_SERVER_MESSAGE)
 
-	if msg == fmt.Sprintf("%v", batchSize) {
-		log.Infof("action: apuesta_enviada | result: success | cantidad: %v", msg)
-	} else {
+	if msg != fmt.Sprintf("%v", batchSize) {
 		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: server could not process batch | cantidad: %v" ,
 		c.config.ID, 
 		msg,
 		)
+		return
 	} 
-
+	log.Infof("action: apuesta_enviada | result: success | cantidad: %v", msg)
 }
 
 func createBet(agency string, betStr string) *Bet {
@@ -155,6 +186,10 @@ func createBet(agency string, betStr string) *Bet {
 }
 
 func (c *Client) sendBatch(batch []string) int{
+	if c.checkClientStatus() {
+		c.closeAll()
+		return 0
+	}
 	join := strings.Join(batch, BET_SEPARATOR)
 	b := fmt.Sprintf("%s\n", join)
 	_, err := c.conn.Write([]byte(b))
@@ -168,7 +203,7 @@ func (c *Client) sendBatch(batch []string) int{
 	return len(batch)
 }
 
-func (c* Client) sendBets(batchNum int) {
+func (c* Client) sendBets() {
 	file := readBetsFile(c.config.ID)
 	defer file.Close()
 
@@ -177,32 +212,36 @@ func (c* Client) sendBets(batchNum int) {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		if lineInBatch(line, batchNum, c.config.BatchMaxAmount) {
-			betStr := scanner.Text()
-			bet := createBet(c.config.ID, betStr)
-			if bet == nil {
-				log.Errorf("action: create_bet | result: fail | client_id: %v | error: bet in line %v had invalid parameters", c.config.ID, line)
-				continue
-			}
-			betsToSend = append(betsToSend, bet.String())
+		if c.checkClientStatus() {
+			c.closeAll()
+			return
 		}
-	
-		if line == batchNum*c.config.BatchMaxAmount{
+		if line%c.config.BatchMaxAmount==0 && line != 0{
 			size := c.sendBatch(betsToSend)
+			if size == 0 {
+				return
+			}
 			c.readResponse(size)
 			betsToSend = []string{}
 		}
+	
+		betStr := scanner.Text()
+		bet := createBet(c.config.ID, betStr)
+		if bet == nil {
+			log.Errorf("action: create_bet | result: fail | client_id: %v | error: bet in line %v had invalid parameters", c.config.ID, line)
+			continue
+		}
+		betsToSend = append(betsToSend, bet.String())
 		line += 1
 	}
 
-	if len(betsToSend) != 0 {
+	if len(betsToSend) != 0{
 		size := c.sendBatch(betsToSend)
+		if size == 0{
+			return
+		}
 		c.readResponse(size)
 	}
-}
-
-func lineInBatch(line int, batchNum int, batchSize int) bool {
-	return (batchNum-1)*batchSize <= line && line < batchNum*batchSize
 }
 
 func readBetsFile(id string) *os.File {
