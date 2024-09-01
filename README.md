@@ -28,7 +28,7 @@ El funcionamiento y ejecución es igual que antes, con la diferencia de que si s
 
 ### Ejercicio N°3
 
-Se creó un script de bash `validar-echo-server.sh` que recibe por parámetro un mensaje para enviarle al servidor y corroborar que esté funcionando adecuadamente. En caso de que el servidor retorne el mismo mensaje, se imprime `action: test_echo_server | result: success` y en caso contrario `action: test_echo_server | result: fail`.
+Se creó un script de bash `validar-echo-server.sh` que envía un mensaje al servidor y corrobora que esté funcionando adecuadamente. En caso de que el servidor retorne el mismo mensaje, se imprime `action: test_echo_server | result: success` y en caso contrario `action: test_echo_server | result: fail`.
 
 En caso de que el servidor esté apagado o la red no esté levantada, primero se imprimirá un error de docker informando la situación.
 
@@ -37,3 +37,5 @@ Para ejecutarlo hay que correr:
 ```bash
 ./validar-echo.server.sh $mensaje
 ```
+
+Para cambiar el mensaje que se le envía al servidor hay que editar la variable `message` dentro del script.
