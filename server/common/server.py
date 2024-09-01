@@ -10,7 +10,7 @@ class ServerSignalHandler:
         self.server = server
 
     def close_all(self, _signal, frame):
-        logging.info('action: received {} | info: closing and shutting down'.format(signal.Signals(_signal).name))
+        logging.info('action: received {} | info: closing and shutting down | result: success'.format(signal.Signals(_signal).name))
         self.server.close_all()
 
 class Server:
