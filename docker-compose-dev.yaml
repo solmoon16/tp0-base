@@ -3,24 +3,24 @@ networks:
   testing_net:
     ipam:
       config:
-      - subnet: 172.25.125.0/24
+        - subnet: 172.25.125.0/24
       driver: default
 services:
   client1:
     container_name: client1
     depends_on:
-    - server
+      - server
     entrypoint: /client
     image: client:latest
     networks:
-    - testing_net
+      - testing_net
     volumes:
-    - /home/solmoon/distribuidos/tp0-base/tp0-base/client/config.yaml:/config.yaml
+      - /home/solmoon/distribuidos/tp0-base/client/config.yaml:/config.yaml
   server:
     container_name: server
     entrypoint: python3 /main.py
     image: server:latest
     networks:
-    - testing_net
+      - testing_net
     volumes:
-    - /home/solmoon/distribuidos/tp0-base/tp0-base/server/config.ini:/config.ini
+      - /home/solmoon/distribuidos/tp0-base/server/config.ini:/config.ini
