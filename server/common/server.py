@@ -7,9 +7,7 @@ import string
 from common.utils import Bet, store_bets
 END_OF_BET=";"
 FIELD_SEPARATOR=","
-
 END_BATCH = "\n"
-BET_SEPARATOR = ";"
 
 class ServerSignalHandler:
     def __init__(self, server):
@@ -98,7 +96,7 @@ class Server:
         Sends response to client
         """
 
-        msg_list = msg.split(BET_SEPARATOR)
+        msg_list = msg.split(END_OF_BET)
         bets = []
         for msg in msg_list:
             bet = handle_bet(msg)
@@ -133,7 +131,7 @@ def close_socket(sock: socket, name: string):
     return sock
 
 def handle_bet(betStr: string):
-    params = betStr.split(",")
+    params = betStr.split(FIELD_SEPARATOR)
     if len(params) < 6:
         return None
     

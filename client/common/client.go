@@ -20,7 +20,6 @@ const ESM_CHAR = '\n'
 const PATH = "./.data/agency-"
 const EXTENSION = ".csv"
 const END_BATCH = '\n'
-const END_SERVER_MESSAGE = "\n"
 const BET_SEPARATOR = ";"
 const FIELD_SEPARATOR = ","
 const EMPTY_BATCH = "0"
@@ -126,7 +125,7 @@ func (c *Client) handleConnection(msgID int) {
 
 // Reads response from server and logs answer
 func (c *Client) readResponse(batchSize int) {
-	msg_read, err := bufio.NewReader(c.conn).ReadString('\n')
+	msg_read, err := bufio.NewReader(c.conn).ReadString(ESM_CHAR)
 	
 	if err != nil {
 		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: error communicating with server (%v)",

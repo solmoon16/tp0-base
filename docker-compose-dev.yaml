@@ -12,13 +12,6 @@ services:
       - server
     entrypoint: /client
     image: client:latest
-    environment:
-      - CLI_ID=1
-      - NOMBRE=Laura
-      - APELLIDO=Perez
-      - DOCUMENTO=12345678
-      - NACIMIENTO=1960-05-28
-      - NUMERO=7089
     networks:
       - testing_net
     volumes:
