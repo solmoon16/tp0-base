@@ -39,6 +39,7 @@ type Client struct {
 	stop chan bool
 }
 
+// If SIGTERM or SIGINT are received it sends true to the stop channel so that the client knows to finish executing
 func signalHandler(stop chan bool, client_id string) {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT)
@@ -101,6 +102,8 @@ func (c *Client) StartClientLoop() {
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 }
 
+<<<<<<< HEAD
+=======
 func (c *Client) closeAll() {
 	if c.conn != nil {c.conn.Close()}
 }
@@ -111,7 +114,6 @@ func (c *Client) handleConnection(msgID int) {
 	c.CreateClientSocket()
 
 	if c.conn == nil {
-		c.stop<-true
 		return
 	}
 
