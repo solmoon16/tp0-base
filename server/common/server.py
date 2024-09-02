@@ -4,8 +4,6 @@ import logging
 import string
 
 from common.utils import Bet, has_won, load_bets, store_bets
-
-from common.utils import Bet, store_bets
 END_OF_BET=";"
 FIELD_SEPARATOR=","
 END_BATCH = "\n"

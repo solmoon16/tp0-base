@@ -138,7 +138,7 @@ func (c *Client) waitWinner() {
 		c.closeAll()
 		return
 	}
-	msg, err := bufio.NewReader(c.conn).ReadString('\n')
+	msg, err := bufio.NewReader(c.conn).ReadString(ESM_CHAR)
 	if err != nil {
 		log.Errorf("action: consulta_ganadores | result: fail | client_id: %v | error: error communicating with server (%v)",
 			c.config.ID,
