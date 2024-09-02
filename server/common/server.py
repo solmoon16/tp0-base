@@ -134,7 +134,7 @@ class Server:
         self.client_socket = close_socket(self.client_socket, 'client')
     
     def clients_done(self) -> bool: 
-        return len(self.clients) == AGENCIES_NUM
+        return len(self.clients.keys()) == AGENCIES_NUM
             
     def do_draw(self):
         logging.info(f'action: sorteo | result: success')
@@ -149,7 +149,7 @@ class Server:
         winsPerAgency = [0 for x in range(AGENCIES_NUM)]
         for win in winners:
             winsPerAgency[win.agency-1] += 1
-        for (agency, conn) in self.client_connections.items():
+        for (agency, conn) in self.clients.items():
             agency = int(agency)
             self.send_response(conn, winsPerAgency[agency-1])
             close_socket(conn, f"client{agency}")
