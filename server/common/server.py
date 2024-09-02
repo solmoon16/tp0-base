@@ -4,6 +4,7 @@ import logging
 import string
 
 from common.utils import Bet, store_bets
+FIELD_SEPARATOR=","
 
 class ServerSignalHandler:
     def __init__(self, server):
@@ -85,7 +86,7 @@ class Server:
         addr = self.client_socket.getpeername()
         logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
 
-        msg_list = msg.split(";")
+        msg_list = msg.split(FIELD_SEPARATOR)
         if len(msg_list) < 6:
             logging.error("action: apuesta_almacenada | result: fail | error: bet doesn't have all necessary information")
             return
