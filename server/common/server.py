@@ -26,7 +26,6 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
-        self.client_socket = None
         self.clients = {}
 
     def run(self):
@@ -42,10 +41,10 @@ class Server:
             if self.clients_done():
                 self.do_draw()
                 break
-            self.client_socket = self.__accept_new_connection()
-            if self.client_socket is None:
+            client_socket = self.__accept_new_connection()
+            if client_socket is None:
                 continue
-            self.__handle_client_connection()
+            self.__handle_client_connection(client_socket)
         
             
     
@@ -66,7 +65,7 @@ class Server:
         else:
             return c
 
-    def __handle_client_connection(self):
+    def __handle_client_connection(self, client_socket):
         """
         Read message from a specific client socket and closes the socket
 
@@ -75,8 +74,8 @@ class Server:
         """
         old_msg = ""
         try:
-            while True and self.client_socket is not None:
-                read = self.client_socket.recv(1024).decode('utf-8', 'ignore')
+            while True and client_socket is not None:
+                read = client_socket.recv(1024).decode('utf-8', 'ignore')
                 if not read:
                     break
                 msg = old_msg + read
@@ -84,7 +83,7 @@ class Server:
                 try:
                     sep = msg.index(DONE)
                     client_id = msg[sep+len(DONE):]
-                    self.clients.update({client_id: self.client_socket})
+                    self.clients.update({client_id: client_socket})
                     return
                 except:
                     try:
@@ -99,7 +98,7 @@ class Server:
             logging.error(f"action: receive_message | result: fail | error: {e}")
             
 
-    def handle_message(self, msg: string):
+    def handle_message(self, msg: string, client_socket: socket):
         """
         Parses bet received from client and stores it
 
@@ -120,9 +119,8 @@ class Server:
             store_bets(bets)
             logging.info(f'action: apuesta_recibida | result: success | cantidad: {len(bets)}')
 
-        self.send_response(self.client_socket, len(bets))
+        self.send_response(client_socket, len(bets))
         
-
     def send_response(self, client_socket, bets_num: int):
         """
         Sends to client bet number saved
@@ -131,7 +129,8 @@ class Server:
     
     def close_all(self):
         self._server_socket = close_socket(self._server_socket, 'server')
-        self.client_socket = close_socket(self.client_socket, 'client')
+        for (agency, conn) in self.clients.items():
+            close_socket(conn, agency)
     
     def clients_done(self) -> bool: 
         return len(self.clients.keys()) == AGENCIES_NUM
