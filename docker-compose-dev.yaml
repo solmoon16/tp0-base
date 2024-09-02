@@ -16,6 +16,7 @@ services:
       - testing_net
     volumes:
       - /home/solmoon/distribuidos/tp0-base/client/config.yaml:/config.yaml
+      - /home/solmoon/distribuidos/tp0-base/.data:/.data
   server:
     container_name: server
     entrypoint: python3 /main.py

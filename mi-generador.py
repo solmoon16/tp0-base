@@ -12,7 +12,7 @@ dic = {'name': 'tp0',
                  'volumes': [f'{dir}/server/config.ini:/config.ini']}, 
             'client1': 
                 {'container_name': 'client1', 'image': 'client:latest', 'entrypoint': '/client','networks': ['testing_net'], 'depends_on': ['server'],
-                 'volumes': [f'{dir}/client/config.yaml:/config.yaml']
+                 'volumes': [f'{dir}/client/config.yaml:/config.yaml', f'{dir}/.data:/.data']
                 }
             }, 
         'networks': 
