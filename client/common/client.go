@@ -29,6 +29,7 @@ type Client struct {
 	stop chan bool
 }
 
+// If SIGTERM or SIGINT are received it sends true to the stop channel so that the client knows to finish executing
 func signalHandler(stop chan bool, client_id string) {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT)
