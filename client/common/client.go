@@ -14,10 +14,11 @@ import (
 )
 
 var log = logging.MustGetLogger("log")
+const END_SERVER_MESSAGE = "\n"
+const ESM_CHAR = '\n'
 const PATH = "./.data/agency-"
 const EXTENSION = ".csv"
 const END_BATCH = '\n'
-const END_SERVER_MESSAGE = "\n"
 const BET_SEPARATOR = ";"
 const FIELD_SEPARATOR = ","
 const EMPTY_BATCH = "0"
@@ -39,12 +40,13 @@ type Client struct {
 	stop chan bool
 }
 
+// If SIGTERM or SIGINT are received it sends true to the stop channel so that the client knows to finish executing
 func signalHandler(stop chan bool, client_id string) {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT)
 	sig := <-sigs
 	stop <- true
-	log.Infof("action: received signal %v | info: closing socket | client_id: %v", sig, client_id)
+	log.Infof("action: received signal %v | result: success | info: closing socket | client_id: %v", sig, client_id)
 }
 
 // NewClient Initializes a new client receiving the configuration
@@ -101,7 +103,6 @@ func (c *Client) handleConnection() {
 	c.CreateClientSocket()
 
 	if c.conn == nil {
-		c.stop<-true
 		return
 	}
 

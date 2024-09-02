@@ -3,15 +3,16 @@ import sys, yaml
 args = sys.argv
 file_name = args[1]
 client_num = int(args[2])
+dir = args[3]
 
 dic = {'name': 'tp0', 
        'services': 
             {'server': 
-                {'container_name': 'server', 'image': 'server:latest', 'entrypoint': 'python3 /main.py', 'environment': ['PYTHONUNBUFFERED=1', 'LOGGING_LEVEL=DEBUG'], 'networks': ['testing_net'], 
-                 'volumes': ['${PWD}/server/config.ini:/config.ini']}, 
+                {'container_name': 'server', 'image': 'server:latest', 'entrypoint': 'python3 /main.py', 'networks': ['testing_net'], 
+                 'volumes': [f'{dir}/server/config.ini:/config.ini']}, 
             'client1': 
-                {'container_name': 'client1', 'image': 'client:latest', 'entrypoint': '/client', 'environment': ['CLI_ID=1', 'CLI_LOG_LEVEL=DEBUG'], 'networks': ['testing_net'], 'depends_on': ['server'],
-                 'volumes': ['${PWD}/client/config.yaml:/config.yaml', '${PWD}/.data:/.data']
+                {'container_name': 'client1', 'image': 'client:latest', 'entrypoint': '/client','networks': ['testing_net'], 'depends_on': ['server'],
+                 'volumes': [f'{dir}/client/config.yaml:/config.yaml', f'{dir}/.data:/.data']
                 }
             }, 
         'networks': 
@@ -24,7 +25,6 @@ client = services['client1']
 for i in range(0, client_num):
     name = 'client'+str(i+1)
     client['container_name'] = name
-    client['environment'] = [f'CLI_ID={i+1}', 'CLI_LOG_LEVEL=DEBUG']
     services[name] = client.copy()
 
 yaml.Dumper.ignore_aliases = lambda *args : True

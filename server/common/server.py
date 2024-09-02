@@ -5,8 +5,10 @@ import string
 
 from common.utils import Bet, has_won, load_bets, store_bets
 
+from common.utils import Bet, store_bets
+END_OF_BET=";"
+FIELD_SEPARATOR=","
 END_BATCH = "\n"
-BET_SEPARATOR = ";"
 AGENCIES_NUM = 5
 DONE = "DONE:"
 
@@ -17,7 +19,7 @@ class ServerSignalHandler:
         self.server = server
 
     def close_all(self, _signal, frame):
-        logging.info('action: received {} | info: closing and shutting down'.format(signal.Signals(_signal).name))
+        logging.info('action: received {} | result: success | info: closing and shutting down'.format(signal.Signals(_signal).name))
         self.server.close_all()
 
 class Server:
@@ -110,7 +112,7 @@ class Server:
         Sends response to client
         """
 
-        msg_list = msg.split(BET_SEPARATOR)
+        msg_list = msg.split(END_OF_BET)
         bets = []
         for msg in msg_list:
             bet = handle_bet(msg)
@@ -174,7 +176,7 @@ def close_socket(sock: socket, name: string):
     return sock
 
 def handle_bet(betStr: string):
-    params = betStr.split(",")
+    params = betStr.split(FIELD_SEPARATOR)
     if len(params) < 6:
         return None
     
