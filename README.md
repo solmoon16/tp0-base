@@ -68,8 +68,12 @@ Se agregó la estructura 'Bet' en el módulo del cliente, la cual se utiliza par
 
 Para la lectura del socket, se mantuvo la estructura previamente utilizada, que intenta leer hasta el primer '\n' y devuelve un error en caso de que no lo logre.
 
-Desde el lado del servidor, para evitar el _short read_ es necesario leer en loop hasta que se lee un string vacío, lo que indica que la conexión se cerró. Como el cliente cierra la conexión cuando termina de enviar su mensaje, el servidor obtiene la apuesta enviada. Para evitar el _short write_, se utiliza el método `sendall` que se encarga de escribir todo el buffer indicado o lanzar un error en caso contrario.
+Desde el lado del servidor, para evitar el _short read_ es necesario leer en loop hasta que se lee un string vacío, lo que indica que la conexión se cerró. Como el cliente cierra la conexión cuando termina de enviar su mensaje, el servidor obtiene la apuesta enviada y no se queda esperando por más mensajes. Para evitar el _short write_, se utiliza el método `sendall` que se encarga de escribir todo el buffer indicado o lanzar un error en caso contrario.
 
 Cuando el servidor recibe una apuesta del cliente, la almacena utilizando la función `store_bet` y le envía al cliente el número de apuesta almacenado. Cuando el cliente lo recibe deja constancia en el log. El cliente tiene un límite de tiempo de lectura, y en caso de que se supere considera que el servidor no le contestó a tiempo y que hubo un error en la comunicación.
 
 Como parte del protocolo, a la hora de construir una apuesta, se revisa que se tenga toda la información necesaria y que tenga el formato indicado. Según un análisis realizado a los archivos .csv que contienen múltiples apuestas, se definieron tamaños máximos para el nombre y apellido de cada apuesta. Además, se verifica que la fecha de nacimiento esté en el formato indicado, que el documento tenga sentido (número y con 8 caracteres) y que el número de apuesta sea un número. En caso de que no se cumpla alguna de esas validaciones, no se crea la apuesta.
+
+Por otro lado, el servidor mantiene un buffer de lectura de 1024 bytes. Como, según el análisis realizado previamente, todas las apuestas tienen un tamaño menor al mismo y se manda una apuesta por conexión, no es necesario aún considerar el caso de que la lectura de la apuesta no entre en el buffer.
+
+Para enviar la información de la apuesta se utilizan las variables de entorno `NOMBRE`, `APELLIDO`, `DOCUMENTO`, `NACIMIENTO` y `NUMERO`; se definen en el archivo `docker-compose-dev.yaml` para poder ejecutar el contenedor del cliente. En caso de que falte alguna de las variables, la apuesta no se creará y no será enviada.
