@@ -4,6 +4,7 @@ import logging
 import string
 
 from common.utils import Bet, store_bets
+END_OF_BET=";"
 FIELD_SEPARATOR=","
 
 class ServerSignalHandler:
@@ -85,6 +86,7 @@ class Server:
         """
         addr = self.client_socket.getpeername()
         logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
+        msg = msg.strip(END_OF_BET)
 
         msg_list = msg.split(FIELD_SEPARATOR)
         if len(msg_list) < 6:
