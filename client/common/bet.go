@@ -35,7 +35,7 @@ func NewBet(agency string, name string, lastName string, idNumber string, dateOf
 }
 
 func (b Bet) String() string {
-	return fmt.Sprintf("%v;%v;%v;%v;%v;%v", b.agency, b.name, b.lastName, b.idNumber, b.dateOfBirth, b.number)
+	return fmt.Sprintf("%v,%v,%v,%v,%v,%v", b.agency, b.name, b.lastName, b.idNumber, b.dateOfBirth, b.number)
 }
 
 func namesAreValid(name string, lastName string) bool {

@@ -138,6 +138,7 @@ func createBet(agency string) *Bet {
 func (c *Client) sendBet() (*Bet, bool) {
 
 	bet := createBet(c.config.ID)
+	s := fmt.Sprintf("%s;", bet.String())
 
 	if bet == nil {
 		c.stop<-true
@@ -147,7 +148,7 @@ func (c *Client) sendBet() (*Bet, bool) {
 		return nil, false
 	}
 	bet.agency = c.config.ID
-	_, err := c.conn.Write([]byte(bet.String()))
+	_, err := c.conn.Write([]byte(s))
 	if err != nil {
 		log.Errorf("action: send_message | result: fail | client_id: %v, error: %v", c.config.ID, err,)
 		return nil, false
