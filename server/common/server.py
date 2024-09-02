@@ -5,6 +5,8 @@ import logging
 import string
 
 from common.utils import Bet, store_bets
+END_OF_BET=";"
+FIELD_SEPARATOR=","
 
 END_BATCH = "\n"
 BET_SEPARATOR = ";"
@@ -16,7 +18,7 @@ class ServerSignalHandler:
         self.server = server
 
     def close_all(self, _signal, frame):
-        logging.info('action: received {} | info: closing and shutting down'.format(signal.Signals(_signal).name))
+        logging.info('action: received {} | result: success | info: closing and shutting down'.format(signal.Signals(_signal).name))
         self.server.close_all()
 
 class Server:

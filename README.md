@@ -20,7 +20,7 @@ En caso de que no se reciban ambos parámetros o la cantidad de clientes no sea 
 
 Para que los archivos de configuración sean inyectados en los contenedores y persistidos por fuera de la imagen se realizó un 'build mount' por cada archivo, montando así un archivo específico en un contenedor.
 
-Si bien se realiza la operación en el DockerCompose con la clave 'volume', no es un volumen en sí ya que se está montando un solo archivo en cada caso, especificando las direcciones origen y destino.
+Si bien se realiza la operación en el DockerCompose con la clave 'volume', no es un volumen en sí ya que se está montando un solo archivo en cada caso, especificando las direcciones origen y destino. Como origen, se obtiene el directorio en el cual se está ejecutando el script y luego se le agrega el path relativo, para obtener el path absoluto de cada archivo de configuración.
 
 También se eliminó la línea que copiaba el archivo de configuración del Dockerfile del cliente, y se creó un archivo .dockerignore para que no se copien los archivos de configuración cuando se reinician las imágenes de los contenedores. En caso contrario, como se copiaba toda la carpeta los archivos iban a ser copiados nuevamente.
 
@@ -28,7 +28,7 @@ El funcionamiento y ejecución es igual que antes, con la diferencia de que si s
 
 ### Ejercicio N°3
 
-Se creó un script de bash `validar-echo-server.sh` que recibe por parámetro un mensaje para enviarle al servidor y corroborar que esté funcionando adecuadamente. En caso de que el servidor retorne el mismo mensaje, se imprime `action: test_echo_server | result: success` y en caso contrario `action: test_echo_server | result: fail`.
+Se creó un script de bash `validar-echo-server.sh` que envía un mensaje al servidor y corrobora que esté funcionando adecuadamente. En caso de que el servidor retorne el mismo mensaje, se imprime `action: test_echo_server | result: success` y en caso contrario `action: test_echo_server | result: fail`.
 
 En caso de que el servidor esté apagado o la red no esté levantada, primero se imprimirá un error de docker informando la situación.
 
@@ -37,6 +37,8 @@ Para ejecutarlo hay que correr:
 ```bash
 ./validar-echo.server.sh $mensaje
 ```
+
+Para cambiar el mensaje que se le envía al servidor hay que editar la variable `message` dentro del script.
 
 ### Ejercicio N°4
 
@@ -48,6 +50,16 @@ El cliente solo tiene un socket abierto que abre y cierra cada vez que se conect
 
 Dado el caso de que haya más recursos a manejar en un futuro, las estructuras armadas ya dan lugar a que se libere todo lo utilizado por cada entidad.
 
+Se puede probar corriendo los procesos y enviándoles la señal SIGTERM con el comando
+
+```bash
+kill -15 ${pid}
+```
+
+Al hacerlo, se puede observar que tanto el servidor como el cliente finalizan con código 0 e indican en el log qué sockets se están cerrando.
+
+También se agregó un _graceful shutdown_ para la señal SIGINT, por lo que se puede observar el mismo comportamiento si se hace Ctrl+C en la terminal donde corren los procesos.
+
 ## Parte 2: Repaso de Comunicaciones
 
 ### Ejercicio 5
@@ -56,11 +68,15 @@ Se agregó la estructura 'Bet' en el módulo del cliente, la cual se utiliza par
 
 Para la lectura del socket, se mantuvo la estructura previamente utilizada, que intenta leer hasta el primer '\n' y devuelve un error en caso de que no lo logre.
 
-Desde el lado del servidor, para evitar el _short read_ es necesario leer en loop hasta que se lee un string vacío, lo que indica que la conexión se cerró. Como el cliente cierra la conexión cuando termina de enviar su mensaje, el servidor obtiene la apuesta enviada. Para evitar el _short write_, se utiliza el método `sendall` que se encarga de escribir todo el buffer indicado o lanzar un error en caso contrario.
+Desde el lado del servidor, para evitar el _short read_ es necesario leer en loop hasta que se lee un string vacío, lo que indica que la conexión se cerró. Como el cliente cierra la conexión cuando termina de enviar su mensaje, el servidor obtiene la apuesta enviada y no se queda esperando por más mensajes. Para evitar el _short write_, se utiliza el método `sendall` que se encarga de escribir todo el buffer indicado o lanzar un error en caso contrario.
 
 Cuando el servidor recibe una apuesta del cliente, la almacena utilizando la función `store_bet` y le envía al cliente el número de apuesta almacenado. Cuando el cliente lo recibe deja constancia en el log. El cliente tiene un límite de tiempo de lectura, y en caso de que se supere considera que el servidor no le contestó a tiempo y que hubo un error en la comunicación.
 
 Como parte del protocolo, a la hora de construir una apuesta, se revisa que se tenga toda la información necesaria y que tenga el formato indicado. Según un análisis realizado a los archivos .csv que contienen múltiples apuestas, se definieron tamaños máximos para el nombre y apellido de cada apuesta. Además, se verifica que la fecha de nacimiento esté en el formato indicado, que el documento tenga sentido (número y con 8 caracteres) y que el número de apuesta sea un número. En caso de que no se cumpla alguna de esas validaciones, no se crea la apuesta.
+
+Por otro lado, el servidor mantiene un buffer de lectura de 1024 bytes. Como, según el análisis realizado previamente, todas las apuestas tienen un tamaño menor al mismo y se manda una apuesta por conexión, no es necesario aún considerar el caso de que la lectura de la apuesta no entre en el buffer.
+
+Para enviar la información de la apuesta se utilizan las variables de entorno `NOMBRE`, `APELLIDO`, `DOCUMENTO`, `NACIMIENTO` y `NUMERO`; se definen en el archivo `docker-compose-dev.yaml` para poder ejecutar el contenedor del cliente. En caso de que falte alguna de las variables, la apuesta no se creará y no será enviada.
 
 ### Ejercicio 6
 

@@ -9,11 +9,14 @@ import (
 	"os/signal"
 	"strings"
 	"fmt"
+	"fmt"
 
 	"github.com/op/go-logging"
 )
 
 var log = logging.MustGetLogger("log")
+const END_SERVER_MESSAGE = "\n"
+const ESM_CHAR = '\n'
 const PATH = "./.data/agency-"
 const EXTENSION = ".csv"
 const END_BATCH = '\n'
@@ -43,7 +46,7 @@ func signalHandler(stop chan bool, client_id string) {
 	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT)
 	sig := <-sigs
 	stop <- true
-	log.Infof("action: received signal %v | info: closing socket | client_id: %v", sig, client_id)
+	log.Infof("action: received signal %v | result: success | info: closing socket | client_id: %v", sig, client_id)
 }
 
 // NewClient Initializes a new client receiving the configuration
@@ -76,7 +79,7 @@ func (c *Client) CreateClientSocket() error {
 		)
 		conn = nil
 	}
-	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	conn.SetReadDeadline(time.Now().Add(c.config.LoopPeriod))
 	c.conn = conn
 	return nil
 }

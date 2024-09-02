@@ -14,4 +14,6 @@ esac
 echo "Nombre del archivo de salida: $1"
 echo "Cantidad de clientes: $2"
 
-python3 mi-generador.py $1 $2
+dir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
+
+python3 mi-generador.py $1 $2 $dir

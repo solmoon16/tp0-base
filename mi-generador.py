@@ -3,15 +3,16 @@ import sys, yaml
 args = sys.argv
 file_name = args[1]
 client_num = int(args[2])
+dir = args[3]
 
 dic = {'name': 'tp0', 
        'services': 
             {'server': 
-                {'container_name': 'server', 'image': 'server:latest', 'entrypoint': 'python3 /main.py', 'environment': ['PYTHONUNBUFFERED=1', 'LOGGING_LEVEL=DEBUG'], 'networks': ['testing_net'], 
-                 'volumes': ['${PWD}/server/config.ini:/config.ini']}, 
+                {'container_name': 'server', 'image': 'server:latest', 'entrypoint': 'python3 /main.py', 'networks': ['testing_net'], 
+                 'volumes': [f'{dir}/server/config.ini:/config.ini']}, 
             'client1': 
-                {'container_name': 'client1', 'image': 'client:latest', 'entrypoint': '/client', 'environment': ['CLI_ID=1', 'CLI_LOG_LEVEL=DEBUG'], 'networks': ['testing_net'], 'depends_on': ['server'],
-                 'volumes': ['${PWD}/client/config.yaml:/config.yaml', '${PWD}/.data:/.data']
+                {'container_name': 'client1', 'image': 'client:latest', 'entrypoint': '/client','networks': ['testing_net'], 'depends_on': ['server'],
+                 'volumes': [f'{dir}/client/config.yaml:/config.yaml']
                 }
             }, 
         'networks': 
