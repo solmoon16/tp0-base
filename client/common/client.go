@@ -76,7 +76,6 @@ func (c *Client) handleConnection(msgID int) {
 	c.createClientSocket()
 
 	if c.conn == nil {
-		c.stop<-true
 		return
 	}
 
