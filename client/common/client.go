@@ -107,7 +107,7 @@ func (c *Client) handleConnection() {
 	}
 
 	c.sendBets()
-	c.waitWinner()
+	c.waitWinner(1)
 	c.conn.Close()
 }
 
@@ -132,8 +132,14 @@ func (c* Client) sendDone() {
 
 }
 
-func (c *Client) waitWinner() {
+func (c *Client) waitWinner(read_amount int) {
 	c.conn.SetReadDeadline(time.Now().Add(1 * time.Second))
+	if read_amount == 5 {
+		log.Errorf("action: consulta_ganadores | result: fail | client_id: %v | error: error communicating with server",
+			c.config.ID,
+		)
+		return
+	}
 	if c.stopClient() {
 		c.closeAll()
 		return
@@ -144,7 +150,7 @@ func (c *Client) waitWinner() {
 			c.config.ID,
 			err,
 		)
-		c.waitWinner()
+		c.waitWinner(read_amount+1)
 		return
 	}
 	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", msg)
