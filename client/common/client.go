@@ -13,6 +13,8 @@ import (
 )
 
 var log = logging.MustGetLogger("log")
+const END_SERVER_MESSAGE = "\n"
+const ESM_CHAR = '\n'
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
@@ -97,7 +99,7 @@ func (c *Client) handleConnection(msgID int) {
 
 // Reads response from server and logs answer
 func (c *Client) readResponse(bet *Bet) {
-	msg_read, err := bufio.NewReader(c.conn).ReadString('\n')
+	msg_read, err := bufio.NewReader(c.conn).ReadString(ESM_CHAR)
 	
 	if err != nil {
 		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: error communicating with server (%v)",
@@ -107,7 +109,7 @@ func (c *Client) readResponse(bet *Bet) {
 		return
 	}
 
-	msg := strings.Trim(msg_read, "\n")
+	msg := strings.Trim(msg_read, END_SERVER_MESSAGE)
 
 	if msg == bet.number {
 		log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
@@ -145,7 +147,11 @@ func (c *Client) sendBet() (*Bet, bool) {
 		return nil, false
 	}
 	bet.agency = c.config.ID
-	c.conn.Write([]byte(bet.String()))
+	_, err := c.conn.Write([]byte(bet.String()))
+	if err != nil {
+		log.Errorf("action: send_message | result: fail | client_id: %v, error: %v", c.config.ID, err,)
+		return nil, false
+	}
 
 	return bet, true
 }
