@@ -11,7 +11,7 @@ dic = {'name': 'tp0',
                 {'container_name': 'server', 'image': 'server:latest', 'entrypoint': 'python3 /main.py', 'networks': ['testing_net'], 
                  'volumes': [f'{dir}/server/config.ini:/config.ini']}, 
             'client1': 
-                {'container_name': 'client1', 'image': 'client:latest', 'entrypoint': '/client','networks': ['testing_net'], 'depends_on': ['server'],
+                {'container_name': 'client1', 'image': 'client:latest', 'entrypoint': '/client','networks': ['testing_net'], 'depends_on': ['server'],'environment': ['CLI_ID=1'],
                  'volumes': [f'{dir}/client/config.yaml:/config.yaml']
                 }
             }, 
@@ -25,6 +25,7 @@ client = services['client1']
 for i in range(0, client_num):
     name = 'client'+str(i+1)
     client['container_name'] = name
+    client['environment'] = [f'CLI_ID={i+1}']
     services[name] = client.copy()
 
 yaml.Dumper.ignore_aliases = lambda *args : True
