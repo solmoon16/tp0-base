@@ -199,6 +199,7 @@ func (c *Client) sendBatch(batch []string) int{
 		c.closeAll()
 		return 0
 	}
+	time.Sleep(c.config.LoopPeriod)
 	join := strings.Join(batch, BET_SEPARATOR)
 	b := fmt.Sprintf("%s\n", join)
 	_, err := c.conn.Write([]byte(b))
