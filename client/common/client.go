@@ -66,7 +66,7 @@ func (c *Client) createClientSocket() error {
 		)
 		conn = nil
 	}
-	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	conn.SetReadDeadline(time.Now().Add(c.config.LoopPeriod))
 	c.conn = conn
 	return nil
 }
