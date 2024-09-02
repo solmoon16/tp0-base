@@ -129,7 +129,7 @@ func createBet(agency string) *Bet {
 	lastName := os.Getenv("APELLIDO")
 	idNumber := os.Getenv("DOCUMENTO")
 	dateOfBirth := os.Getenv("NACIMIENTO")
-	number := os.Getenv("NUMBER")
+	number := os.Getenv("NUMERO")
 	return NewBet(agency, name, lastName, idNumber, dateOfBirth, number)
 }
 
