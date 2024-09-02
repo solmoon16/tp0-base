@@ -35,9 +35,7 @@ class Server:
         communication with a client. After client with communucation
         finishes, servers starts to accept new connections again
         """
-
-        # TODO: Modify this program to handle signal to graceful shutdown
-        # the server
+        
         while True and self._server_socket is not None:
             self.client_socket = self.__accept_new_connection()
             if self.client_socket is None:
