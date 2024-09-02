@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"strings"
 	"fmt"
-	"fmt"
 
 	"github.com/op/go-logging"
 )
