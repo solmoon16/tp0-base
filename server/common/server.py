@@ -27,8 +27,7 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         self.client_socket = None
-        self.client_connections = {}
-        self.client_status = {}
+        self.clients = {}
 
     def run(self):
         """
@@ -87,8 +86,7 @@ class Server:
                 try:
                     sep = msg.index(DONE)
                     client_id = msg[sep+len(DONE):]
-                    self.client_status.update({client_id: True})
-                    self.client_connections.update({client_id: self.client_socket})
+                    self.clients.update({client_id: self.client_socket})
                     return
                 except:
                     try:
@@ -138,14 +136,7 @@ class Server:
         self.client_socket = close_socket(self.client_socket, 'client')
     
     def clients_done(self) -> bool: 
-        if len(self.client_status.keys()) < AGENCIES_NUM:
-            return False
-
-        for v in self.client_status.values():
-            if v == False:
-                return False
-            
-        return True
+        return len(self.clients) == AGENCIES_NUM
             
     def do_draw(self):
         logging.info(f'action: sorteo | result: success')
