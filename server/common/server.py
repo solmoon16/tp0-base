@@ -90,7 +90,7 @@ class Server:
                         sep = msg.index(END_BATCH)             
                         batch = msg[:sep]   
                         old_msg = msg[sep+1:]
-                        self.handle_message(batch)
+                        self.handle_message(batch, client_socket)
                     finally:
                         continue
                     
