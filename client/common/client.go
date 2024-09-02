@@ -23,6 +23,7 @@ const BET_SEPARATOR = ";"
 const FIELD_SEPARATOR = ","
 const EMPTY_BATCH = "0"
 const DONE = "DONE"
+const MAX_READ = 5
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
@@ -134,7 +135,7 @@ func (c* Client) sendDone() {
 
 func (c *Client) waitWinner(read_amount int) {
 	c.conn.SetReadDeadline(time.Now().Add(1 * time.Second))
-	if read_amount == 5 {
+	if read_amount == MAX_READ {
 		log.Errorf("action: consulta_ganadores | result: fail | client_id: %v | error: error communicating with server",
 			c.config.ID,
 		)
