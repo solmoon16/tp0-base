@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"fmt"
 
 	"github.com/op/go-logging"
 )
