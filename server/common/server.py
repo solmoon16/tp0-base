@@ -1,5 +1,4 @@
 from multiprocessing import Manager, Process
-import select
 import signal
 import socket
 import logging
@@ -54,9 +53,12 @@ class Server:
                 client_socket = self.__accept_new_connection()
                 if client_socket is None:
                     continue
-                p = Process(target=self.__handle_client_connection, args=(client_socket, shared))
-                self.processes.append(p)
-                p.start()
+                self.start_client_connection(client_socket, shared)
+                
+    def start_client_connection(self, client_socket, shared_dict):
+        p = Process(target=self.__handle_client_connection, args=(client_socket, shared_dict))
+        self.processes.append(p)
+        p.start()
     
     def __accept_new_connection(self):
         """
