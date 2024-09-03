@@ -44,11 +44,9 @@ Para cambiar el mensaje que se le envía al servidor hay que editar la variable 
 
 En este programa los recursos principales siendo utilizados son sockets que permiten comunicar al servidor con los clientes, por lo que ese es el recurso que hay que tener en cuenta en un _graceful shutdown_.
 
-Desde el lado del servidor, cuando se recibe la señal SIGTERM, se notifica inmediatamente al servidor y se llama a la función que cierra y libera los recursos. En este caso, se cierra el socket del servidor por el cual escucha las conexiones entrantes y, si estaba en comunicación con algún cliente, cierra ese socket también.
+Desde el lado del servidor, cuando se recibe la señal SIGTERM, se notifica inmediatamente al servidor y se llama a la función que cierra y libera los recursos. En este caso, se cierra el socket del servidor por el cual escucha las conexiones entrantes y, si estaba en comunicación con algún cliente, cierra ese socket también. Como los sockets están cerrados, finaliza sus operaciones y termina el proceso.
 
-El cliente solo tiene un socket abierto que abre y cierra cada vez que se conecta con el servidor. Cuando se recibe la señal SIGTERM, termina la conexión que tenía abierta y no vuelve a abrir otra. Si el socket que estaba utilizando queda abierto, se cierra.
-
-Dado el caso de que haya más recursos a manejar en un futuro, las estructuras armadas ya dan lugar a que se libere todo lo utilizado por cada entidad.
+El cliente solo tiene un socket abierto que abre y cierra cada vez que se conecta con el servidor. En una go rutina distinta, se está escuchando constantemente por las señales. Cuando llega alguna, se notifica al hilo principal a través de un canal que se lee antes de comenzar una nueva conexión. Por lo tanto, el cliente finaliza la conexión que tenía abierta y no vuelve a abrir otra. Si el socket que estaba utilizando queda abierto, se cierra.
 
 Se puede probar corriendo los procesos y enviándoles la señal SIGTERM con el comando
 
@@ -78,12 +76,20 @@ Por otro lado, el servidor mantiene un buffer de lectura de 1024 bytes. Como, se
 
 Para enviar la información de la apuesta se utilizan las variables de entorno `NOMBRE`, `APELLIDO`, `DOCUMENTO`, `NACIMIENTO` y `NUMERO`; se definen en el archivo `docker-compose-dev.yaml` para poder ejecutar el contenedor del cliente. En caso de que falte alguna de las variables, la apuesta no se creará y no será enviada.
 
+Si se recibe alguna de las señales de finalización (SIGTERM o SIGINT), en el caso del servidor se cierran ambos sockets y, una vez finalizada la operación que estaba realizando, sale y no continúa. En el caso del cliente, cuando se recibe alguna de las señales se le notifica al hilo principal a través de un canal que se lee antes de abrir una nueva conexión. Por lo tanto, el cliente finaliza la conexión que tenía y luego cierra todo en vez de abrir una nueva.
+
 ### Ejercicio 6
 
-En este ejercicio, en vez de enviar una sola apuesta la idea es enviar apuestas en _batches_. Dados los tamaños definidos en el ejercicio anterior y la limitación de 8kb para un batch, se decidió que el tamaño máximo sea 120 apuestas por batch, quedando dentro del rango definido pero enviando de a múltiples apuestas, acelerando el procesamiento por parte del servidor.
+En este ejercicio, en vez de enviar una sola apuesta la idea es enviar apuestas en _batches_. Dados los tamaños definidos en el ejercicio anterior y la limitación de 8kb para un batch, se decidió que el tamaño máximo sea 120 apuestas por batch, acercándose al máximo definido y enviando de a múltiples apuestas, acelerando el procesamiento por parte del servidor.
 
-Los clientes tienen loops cuyo tamaño se indica en el archivo de configuración. Por cada ejecución del loop, se envía un batch de apuestas al servidor. Para esto, se utiliza la función `sendBets`, que se encarga de abrir el archivo correspondiente de esa agencia y obtener las apuestas que corresponden a ese número de batch. Luego, las une todas y se las envía al servidor para que este las procese. Para delimitar el fin de un batch e indicarle al servidor que ya se terminó de enviar, se utiliza el caracter '\n'.
+Los clientes tienen loops cuyo tamaño se indica en el archivo de configuración. Por cada ejecución del loop, se envía un batch de apuestas al servidor. Para esto, se utiliza la función `sendBets`, que se encarga de abrir el archivo correspondiente de esa agencia y obtener las apuestas que corresponden a ese número de batch, salteando aquellas apuestas que ya fueron enviadas porque son de otro batch. Luego, une esas apuestas en un batch y se las envía al servidor para que este las procese. Para delimitar el fin de un batch e indicarle al servidor que ya se terminó de enviar, se utiliza el caracter '\n'.
+
+Para poder leer el archivo correspondiente a cada cliente, se agregó un volumen para la carpeta .data en el contenedor del cliente. De esta forma, cada cliente puede acceder a la carpeta y, si se edita desde afuera, no es necesario reiniciar el contenedor.
 
 Desde el lado del servidor, lee del socket del cliente constantemente hasta que el cliente lo cierra, indicando el fin de la conexión. Mientras lee, va guardando en un buffer propio todo el mensaje hasta que se encuentra con un '\n', ya que eso indica que recibió todo un batch. En ese caso, procesa todas las apuestas recibidas convirtiéndolas en objetos `Bet` y utilizando `store_bet` para almacenarlas. Si la conexión sigue abierta, sigue leyendo.
 
 Luego de guardar todas las apuestas, el servidor le envía al cliente la cantidad de apuestas que procesó. En caso de que hayan sido menos que un batch, tanto cliente como servidor dejan logs indicando que hubo un error.
+
+En este caso, el cliente ya no recibe más las apuestas por variable de entorno por lo que fueron eliminadas del docker-compose.
+
+En el caso de que se conecten múltiples clientes al servidor, este procesará cada conexión de forma sincrónica e irá guardando cada batch que recibe. Al final, en el archivo `bets.csv` generado se encontrarán las apuestas de todas las agencias, no necesariamente ordenadas.
