@@ -93,3 +93,24 @@ Luego de guardar todas las apuestas, el servidor le envía al cliente la cantida
 En este caso, el cliente ya no recibe más las apuestas por variable de entorno por lo que fueron eliminadas del docker-compose.
 
 En el caso de que se conecten múltiples clientes al servidor, este procesará cada conexión de forma sincrónica e irá guardando cada batch que recibe. Al final, en el archivo `bets.csv` generado se encontrarán las apuestas de todas las agencias, no necesariamente ordenadas.
+
+### Ejercicio 7
+
+Para esta situación, se modificó la lógica de las agencias para que envíen, de a _batches_, todas sus apuestas al servidor en una única conexión. Una vez que la agencia termina de enviarle al servidor sus apuestas, le envía un mensaje indicando que finalizó y se queda esperando a que el servidor envíe quiénes son los ganadores.
+
+El servidor, por otro lado, procesa las apuestas de cada agencia de forma sincrónica y, una vez que finaliza cada cliente, los guarda en un diccionario con el número de agencia y la conexión. Una vez que tiene a todos los clientes guardados, es decir que ya todos enviaron sus apuestas, realiza el sorteo utilizando las funciones `load_bets` y `has_won`, y le informa cada cliente cuántos ganadores hubo en su agencia. Finalizado esto, el servidor se cierra cerrando su socket y el de sus clientes.
+
+Cuando cada cliente recibe los ganadores, deja en un log cuántos ganadores tuvo, cierra su socket y finaliza su ejecución.
+
+Por otra parte, en la función `waitWinner` del cliente, se lee del socket del servidor para ver si llegaron los ganadores. Para que el cliente no quede bloqueado intentando leer siempre, se agregó un ReadDeadline de 1 segundo; es decir, si el servidor no responde en 1 segundo el socket envía un error de timeout. Si ocurre un timeout, el cliente vuelve a la misma función y, antes de volver a intentar leer, corrobora si no debe cerrarse porque se recibió una señal de finalización. En caso de que deba cerrarse, cierra los sockets abiertos y termina. En caso contrario, vuelve a intentar leer. Una vez que recibe la respuesta del servidor, deja en el log cuántos ganadores hubo.
+
+Una diferencia del servidor en relación al ejercicio anterior es que ahora la lectura del socket del cliente tiene una nueva condición de corte. Además de finalizar si no lee nada porque se cerró el socket, con cada lectura corrobora si el cliente le mandó el mensaje "DONE:$agencia" para ver si puede continuar procesando las apuestas de otro cliente. En caso de que así sea, agrega a un diccionario el socket abierto para volver a utilizarlo luego de realizar el sorteo.
+
+El número de agencias es enviado al servidor a través de una variable de entorno y, en caso de no recibir ningun número válido, se toma como _default_ 5 agencias. Esto se puede modificar a través de la variable de entorno enviada en el docker-compose o editando la constante AGENCIES_NUM en el archivo del servidor.
+
+En la configuración del cliente se encuentra la variable "loop_period", la cual se utiliza para hacer una pausa entre cada batch enviado, dándole un tiempo al servidor a que reciba todo y pueda procesarlo de mejor manera.
+
+Por lo tanto, se pueden configurar los siguientes valores para observar distintas situaciones:
+
+- número de agencias a través de variable de entorno o editando la constante
+- tiempo que pasa entre cada batch que se envía
