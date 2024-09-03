@@ -18,12 +18,9 @@ const END_SERVER_MESSAGE = "\n"
 const ESM_CHAR = '\n'
 const PATH = "./.data/agency-"
 const EXTENSION = ".csv"
-const END_BATCH = '\n'
 const BET_SEPARATOR = ";"
 const FIELD_SEPARATOR = ","
-const EMPTY_BATCH = "0"
 const DONE = "DONE"
-const MAX_READ = 5
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
@@ -108,7 +105,7 @@ func (c *Client) handleConnection(msgID int) {
 	}
 
 	c.sendBets()
-	c.waitWinner(1)
+	c.waitWinner()
 	c.conn.Close()
 }
 
@@ -124,34 +121,30 @@ func (c*Client) stopClient() bool {
 	return false
 }
 
+// Sends DONE to server letting it know it has finished sending all of its bets
 func (c* Client) sendDone() {
 	s := fmt.Sprintf("%s:%v", DONE, c.config.ID)
 	_, err := c.conn.Write([]byte(s))
 	if err != nil {
 		log.Errorf("action: mensaje_enviado | result: fail | client_id: %v | error: error communicating with server (%v)", c.config.ID, err,)
 	}
-
 }
 
-func (c *Client) waitWinner(read_amount int) {
-	c.conn.SetReadDeadline(time.Now().Add(1 * time.Second))
-	if read_amount == MAX_READ {
-		log.Errorf("action: consulta_ganadores | result: fail | client_id: %v | error: error communicating with server",
-			c.config.ID,
-		)
-		return
-	}
+// Reads from socket until server sends winners. If process received close signal client finishes.
+func (c *Client) waitWinner() {
 	if c.stopClient() {
 		c.closeAll()
 		return
 	}
+	// sets read deadline to not block on read in case client has to close
+	c.conn.SetReadDeadline(time.Now().Add(1 * time.Second))
 	msg, err := bufio.NewReader(c.conn).ReadString(ESM_CHAR)
 	if err != nil {
 		log.Errorf("action: consulta_ganadores | result: fail | client_id: %v | error: error communicating with server (%v)",
 			c.config.ID,
 			err,
 		)
-		c.waitWinner(read_amount+1)
+		c.waitWinner()
 		return
 	}
 	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", msg)
@@ -159,13 +152,12 @@ func (c *Client) waitWinner(read_amount int) {
 
 // Reads response from server and logs answer
 func (c *Client) readResponse(batchSize int) {
-	// sets read deadline for socket with server
-	c.conn.SetReadDeadline(time.Now().Add(c.config.LoopPeriod))
 	if c.stopClient(){
 		c.closeAll()
 		return 
 	}
-
+	// sets read deadline for socket with server
+	c.conn.SetReadDeadline(time.Now().Add(c.config.LoopPeriod))
 	msg_read, err := bufio.NewReader(c.conn).ReadString('\n')
 	
 	if err != nil {
@@ -216,8 +208,8 @@ func (c *Client) sendBatch(batch []string) int{
 	return len(batch)
 }
 
-// Reads bets from file and sends 1 batch each time, skipping bets already sent before
-func (c* Client) sendBets(batchNum int) {
+// Reads bets from file and sends all batches at once
+func (c* Client) sendBets() {
 	file := readBetsFile(c.config.ID)
 	if file == nil {
 		return
