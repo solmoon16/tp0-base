@@ -124,7 +124,7 @@ func (c *Client) handleConnection(msgID int) {
 // Reads response from server and logs answer
 func (c *Client) readResponse(bet *Bet) {
 	// sets read deadline for socket with server
-	conn.SetReadDeadline(time.Now().Add(c.config.LoopPeriod))
+	c.conn.SetReadDeadline(time.Now().Add(c.config.LoopPeriod))
 	msg_read, err := bufio.NewReader(c.conn).ReadString(ESM_CHAR)
 	
 	if err != nil {
