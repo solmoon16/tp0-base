@@ -96,7 +96,7 @@ func (c *Client) closeAll() {
 }
 
 // Opens connection with server, sends batch of bets and waits for confirmation
-func (c *Client) handleConnection(msgID int) {
+func (c *Client) handleConnection() {
 	// Create the connection the server in every loop iteration. Send an
 	c.CreateClientSocket()
 
