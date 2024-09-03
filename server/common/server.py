@@ -30,7 +30,7 @@ class Server:
         finishes, servers starts to accept new connections again
         """
 
-        while True:
+        while True and self._server_socket is not None:
             self.client_socket = self.__accept_new_connection()
             if self.client_socket is None:
                 break
