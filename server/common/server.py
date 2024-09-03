@@ -9,11 +9,7 @@ END_OF_BET=";"
 FIELD_SEPARATOR=","
 END_BATCH = "\n"
 DONE = "DONE:"
-
-try:
-    AGENCIES_NUM = int(os.getenv("AGENCIES"))
-except:
-    AGENCIES_NUM = 5
+AGENCIES_NUM = int(os.getenv("AGENCIES", 5))
 
 class ServerSignalHandler:
     def __init__(self, server):
