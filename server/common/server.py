@@ -11,7 +11,7 @@ END_BATCH = "\n"
 DONE = "DONE:"
 
 try:
-    AGENCIES_NUM = os.getenv("AGENCIES")
+    AGENCIES_NUM = int(os.getenv("AGENCIES"))
 except:
     AGENCIES_NUM = 5
 
@@ -80,7 +80,7 @@ class Server:
         """
         old_msg = ""
         try:
-            while True and self.client_socket is not None:
+            while True and self._server_socket is not None:
                 read = self.client_socket.recv(1024).decode('utf-8', 'ignore')
                 if not read:
                     break
@@ -96,7 +96,7 @@ class Server:
                     try:
                         sep = msg.index(END_BATCH)             
                         batch = msg[:sep]   
-                        old_msg = msg[sep+1:]
+                        old_msg = msg[sep+len(END_BATCH):]
                         self.handle_message(batch)
                     finally:
                         continue
