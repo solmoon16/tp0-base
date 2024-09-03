@@ -113,4 +113,4 @@ En la configuración del cliente se encuentra la variable "loop_period", la cual
 Por lo tanto, se pueden configurar los siguientes valores para observar distintas situaciones:
 
 - número de agencias a través de variable de entorno o editando la constante
-- tiempo que pasa entre cada batch que se envía
+- tiempo que pasa entre cada batch que se envía en el archivo de configuración del cliente
