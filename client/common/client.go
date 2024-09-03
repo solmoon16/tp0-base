@@ -155,7 +155,6 @@ func (c *Client) waitWinner() {
 			c.config.ID,
 			err,
 		)
-		c.waitWinner(read_amount + 1)
 		return
 	}
 	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", msg)
@@ -223,7 +222,7 @@ func (c *Client) sendBatch(batch []string) int {
 func (c *Client) sendBets() int {
 	file := readBetsFile(c.config.ID)
 	if file == nil {
-		return
+		return 0
 	}
 	defer file.Close()
 
