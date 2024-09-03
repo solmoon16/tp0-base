@@ -95,7 +95,7 @@ func (c *Client) closeAll() {
 	if c.conn != nil {c.conn.Close()}
 }
 
-// Opens connection with server, sends batch of bets and waits for confirmation
+// Opens connection with server and sends all bets. Then waits for winners.
 func (c *Client) handleConnection() {
 	// Create the connection the server in every loop iteration. Send an
 	c.CreateClientSocket()
