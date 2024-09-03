@@ -100,7 +100,7 @@ func (c *Client) handleConnection(msgID int) {
 // Reads response from server and logs answer
 func (c *Client) readResponse(bet *Bet) {
 	// sets read deadline for socket with server
-	conn.SetReadDeadline(time.Now().Add(c.config.LoopPeriod))
+	c.conn.SetReadDeadline(time.Now().Add(c.config.LoopPeriod))
 	msg_read, err := bufio.NewReader(c.conn).ReadString(ESM_CHAR)
 	
 	if err != nil {
@@ -140,8 +140,6 @@ func createBet(agency string) *Bet {
 func (c *Client) sendBet() (*Bet, bool) {
 
 	bet := createBet(c.config.ID)
-	s := fmt.Sprintf("%s;", bet.String())
-
 	if bet == nil {
 		c.stop<-true
 		log.Errorf("action: create_bet | result: fail | client_id: %v | error: could not create bet. ENV variables missing",
@@ -149,7 +147,9 @@ func (c *Client) sendBet() (*Bet, bool) {
 		)
 		return nil, false
 	}
+	
 	bet.agency = c.config.ID
+	s := fmt.Sprintf("%s;", bet.String())
 	_, err := c.conn.Write([]byte(s))
 	if err != nil {
 		log.Errorf("action: send_message | result: fail | client_id: %v, error: %v", c.config.ID, err,)
