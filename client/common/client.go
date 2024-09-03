@@ -2,18 +2,20 @@ package common
 
 import (
 	"bufio"
+	"errors"
+	"fmt"
 	"net"
-	"time"
-	"syscall"
 	"os"
 	"os/signal"
 	"strings"
-	"fmt"
+	"syscall"
+	"time"
 
 	"github.com/op/go-logging"
 )
 
 var log = logging.MustGetLogger("log")
+
 const END_SERVER_MESSAGE = "\n"
 const ESM_CHAR = '\n'
 const PATH = "./.data/agency-"
@@ -25,10 +27,10 @@ const BATCH_MAX = 120
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
-	ID            string
-	ServerAddress string
-	LoopAmount    int
-	LoopPeriod    time.Duration
+	ID             string
+	ServerAddress  string
+	LoopAmount     int
+	LoopPeriod     time.Duration
 	BatchMaxAmount int
 }
 
@@ -36,7 +38,7 @@ type ClientConfig struct {
 type Client struct {
 	config ClientConfig
 	conn   net.Conn
-	stop chan bool
+	stop   chan bool
 }
 
 // If SIGTERM or SIGINT are received it sends true to the stop channel so that the client knows to finish executing
@@ -60,7 +62,7 @@ func NewClient(config ClientConfig) *Client {
 
 	client := &Client{
 		config: config,
-		stop: stop,
+		stop:   stop,
 	}
 	return client
 }
@@ -93,7 +95,9 @@ func (c *Client) StartClientLoop() {
 }
 
 func (c *Client) closeAll() {
-	if c.conn != nil {c.conn.Close()}
+	if c.conn != nil {
+		c.conn.Close()
+	}
 }
 
 // Opens connection with server and sends all bets. Then waits for winners.
@@ -111,7 +115,7 @@ func (c *Client) handleConnection() {
 }
 
 // Reads from channel and returns true if the other go routine signaled to stop
-func (c*Client) stopClient() bool {
+func (c *Client) stopClient() bool {
 	select {
 	case stop := <-c.stop:
 		if stop {
@@ -124,11 +128,11 @@ func (c*Client) stopClient() bool {
 }
 
 // Sends DONE to server to let it know it has finished sending all of its bets
-func (c* Client) sendDone() {
+func (c *Client) sendDone() {
 	s := fmt.Sprintf("%s:%v", DONE, c.config.ID)
 	_, err := c.conn.Write([]byte(s))
 	if err != nil {
-		log.Errorf("action: mensaje_enviado | result: fail | client_id: %v | error: error communicating with server (%v)", c.config.ID, err,)
+		log.Errorf("action: mensaje_enviado | result: fail | client_id: %v | error: error communicating with server (%v)", c.config.ID, err)
 	}
 }
 
@@ -141,12 +145,15 @@ func (c *Client) waitWinner() {
 	// sets read deadline to not block on read in case client has to close
 	c.conn.SetReadDeadline(time.Now().Add(1 * time.Second))
 	msg, err := bufio.NewReader(c.conn).ReadString(ESM_CHAR)
+	if errors.Is(err, os.ErrDeadlineExceeded) {
+		c.waitWinner()
+		return
+	}
 	if err != nil {
 		log.Errorf("action: consulta_ganadores | result: fail | client_id: %v | error: error communicating with server (%v)",
 			c.config.ID,
 			err,
 		)
-		c.waitWinner()
 		return
 	}
 	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", msg)
@@ -154,14 +161,14 @@ func (c *Client) waitWinner() {
 
 // Reads response from server and logs answer
 func (c *Client) readResponse(batchSize int) {
-	if c.stopClient(){
+	if c.stopClient() {
 		c.closeAll()
-		return 
+		return
 	}
 	// sets read deadline for socket with server
 	c.conn.SetReadDeadline(time.Now().Add(c.config.LoopPeriod))
 	msg_read, err := bufio.NewReader(c.conn).ReadString(ESM_CHAR)
-	
+
 	if err != nil {
 		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: error communicating with server (%v)",
 			c.config.ID,
@@ -173,12 +180,12 @@ func (c *Client) readResponse(batchSize int) {
 	msg := strings.Trim(msg_read, END_SERVER_MESSAGE)
 
 	if msg != fmt.Sprintf("%v", batchSize) {
-		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: server could not process batch | cantidad: %v" ,
-		c.config.ID, 
-		msg,
+		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: server could not process batch | cantidad: %v",
+			c.config.ID,
+			msg,
 		)
 		return
-	} 
+	}
 	log.Infof("action: apuesta_enviada | result: success | cantidad: %v", msg)
 }
 
@@ -191,7 +198,7 @@ func createBet(agency string, betStr string) *Bet {
 }
 
 // Sends 1 batch of bets to server
-func (c *Client) sendBatch(batch []string) int{
+func (c *Client) sendBatch(batch []string) int {
 	if c.stopClient() {
 		c.closeAll()
 		return 0
@@ -211,14 +218,14 @@ func (c *Client) sendBatch(batch []string) int{
 }
 
 // Reads bets from file and sends all batches at once
-func (c* Client) sendBets() {
+func (c *Client) sendBets() {
 	file := readBetsFile(c.config.ID)
 	if file == nil {
 		return
 	}
 	defer file.Close()
 
-	var betsToSend[] string
+	var betsToSend []string
 	line := 0
 
 	scanner := bufio.NewScanner(file)
@@ -227,7 +234,7 @@ func (c* Client) sendBets() {
 			c.closeAll()
 			return
 		}
-		if line%c.config.BatchMaxAmount==0 && line != 0{
+		if line%c.config.BatchMaxAmount == 0 && line != 0 {
 			size := c.sendBatch(betsToSend)
 			if size == 0 {
 				return
@@ -235,7 +242,7 @@ func (c* Client) sendBets() {
 			c.readResponse(size)
 			betsToSend = []string{}
 		}
-	
+
 		betStr := scanner.Text()
 		bet := createBet(c.config.ID, betStr)
 		if bet == nil {
@@ -246,9 +253,9 @@ func (c* Client) sendBets() {
 		line += 1
 	}
 
-	if len(betsToSend) != 0{
+	if len(betsToSend) != 0 {
 		size := c.sendBatch(betsToSend)
-		if size == 0{
+		if size == 0 {
 			return
 		}
 		c.readResponse(size)
@@ -261,7 +268,7 @@ func readBetsFile(id string) *os.File {
 	path := fmt.Sprintf("%v%v%v", PATH, id, EXTENSION)
 	file, err := os.Open(path)
 	if err != nil {
-		log.Errorf("action: open_file | result: fail | client_id: %v | error: %v", 
+		log.Errorf("action: open_file | result: fail | client_id: %v | error: %v",
 			id,
 			err,
 		)
