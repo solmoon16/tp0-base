@@ -18,10 +18,8 @@ const END_SERVER_MESSAGE = "\n"
 const ESM_CHAR = '\n'
 const PATH = "./.data/agency-"
 const EXTENSION = ".csv"
-const END_BATCH = '\n'
 const BET_SEPARATOR = ";"
 const FIELD_SEPARATOR = ","
-const EMPTY_BATCH = "0"
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
