@@ -68,7 +68,6 @@ func (c *Client) createClientSocket() error {
 		)
 		conn = nil
 	}
-	conn.SetReadDeadline(time.Now().Add(c.config.LoopPeriod))
 	c.conn = conn
 	return nil
 }
@@ -100,6 +99,8 @@ func (c *Client) handleConnection(msgID int) {
 
 // Reads response from server and logs answer
 func (c *Client) readResponse(bet *Bet) {
+	// sets read deadline for socket with server
+	conn.SetReadDeadline(time.Now().Add(c.config.LoopPeriod))
 	msg_read, err := bufio.NewReader(c.conn).ReadString(ESM_CHAR)
 	
 	if err != nil {

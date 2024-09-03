@@ -34,7 +34,7 @@ class Server:
         finishes, servers starts to accept new connections again
         """
 
-        while True:
+        while True and self._server_socket is not None:
             self.client_socket = self.__accept_new_connection()
             if self.client_socket is None:
                 break
@@ -65,7 +65,7 @@ class Server:
         client socket will also be closed
         """
         try:
-            while True:
+            while True and self._server_socket is not None:
                 msg = self.client_socket.recv(1024).rstrip().decode('utf-8')
                 if not msg:
                     break
@@ -99,7 +99,7 @@ class Server:
 
     def send_response(self, bet: Bet):
         """
-        Sends to client bet number saved
+        Sends bet number to client
         """
         self.client_socket.sendall("{}\n".format(bet.number).encode('utf-8'))
     
