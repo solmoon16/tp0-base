@@ -8,7 +8,7 @@ dir = args[3]
 dic = {'name': 'tp0', 
        'services': 
             {'server': 
-                {'container_name': 'server', 'image': 'server:latest', 'entrypoint': 'python3 /main.py', 'networks': ['testing_net'], 
+                {'container_name': 'server', 'image': 'server:latest', 'entrypoint': 'python3 /main.py', 'environment': ['AGENCIES=5'], 'networks': ['testing_net'], 
                  'volumes': [f'{dir}/server/config.ini:/config.ini']}, 
             'client1': 
                 {'container_name': 'client1', 'image': 'client:latest', 'entrypoint': '/client','networks': ['testing_net'], 'depends_on': ['server'],'environment': ['CLI_ID=1'],
