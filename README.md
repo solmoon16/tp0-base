@@ -44,11 +44,9 @@ Para cambiar el mensaje que se le envía al servidor hay que editar la variable 
 
 En este programa los recursos principales siendo utilizados son sockets que permiten comunicar al servidor con los clientes, por lo que ese es el recurso que hay que tener en cuenta en un _graceful shutdown_.
 
-Desde el lado del servidor, cuando se recibe la señal SIGTERM, se notifica inmediatamente al servidor y se llama a la función que cierra y libera los recursos. En este caso, se cierra el socket del servidor por el cual escucha las conexiones entrantes y, si estaba en comunicación con algún cliente, cierra ese socket también.
+Desde el lado del servidor, cuando se recibe la señal SIGTERM, se notifica inmediatamente al servidor y se llama a la función que cierra y libera los recursos. En este caso, se cierra el socket del servidor por el cual escucha las conexiones entrantes y, si estaba en comunicación con algún cliente, cierra ese socket también. Como los sockets están cerrados, finaliza sus operaciones y termina el proceso.
 
-El cliente solo tiene un socket abierto que abre y cierra cada vez que se conecta con el servidor. Cuando se recibe la señal SIGTERM, termina la conexión que tenía abierta y no vuelve a abrir otra. Si el socket que estaba utilizando queda abierto, se cierra.
-
-Dado el caso de que haya más recursos a manejar en un futuro, las estructuras armadas ya dan lugar a que se libere todo lo utilizado por cada entidad.
+El cliente solo tiene un socket abierto que abre y cierra cada vez que se conecta con el servidor. En una go rutina distinta, se está escuchando constantemente por las señales. Cuando llega alguna, se notifica al hilo principal a través de un canal que se lee antes de comenzar una nueva conexión. Por lo tanto, el cliente finaliza la conexión que tenía abierta y no vuelve a abrir otra. Si el socket que estaba utilizando queda abierto, se cierra.
 
 Se puede probar corriendo los procesos y enviándoles la señal SIGTERM con el comando
 
@@ -77,6 +75,8 @@ Como parte del protocolo, a la hora de construir una apuesta, se revisa que se t
 Por otro lado, el servidor mantiene un buffer de lectura de 1024 bytes. Como, según el análisis realizado previamente, todas las apuestas tienen un tamaño menor al mismo y se manda una apuesta por conexión, no es necesario aún considerar el caso de que la lectura de la apuesta no entre en el buffer.
 
 Para enviar la información de la apuesta se utilizan las variables de entorno `NOMBRE`, `APELLIDO`, `DOCUMENTO`, `NACIMIENTO` y `NUMERO`; se definen en el archivo `docker-compose-dev.yaml` para poder ejecutar el contenedor del cliente. En caso de que falte alguna de las variables, la apuesta no se creará y no será enviada.
+
+Si se recibe alguna de las señales de finalización (SIGTERM o SIGINT), en el caso del servidor se cierran ambos sockets y, una vez finalizada la operación que estaba realizando, sale y no continúa. En el caso del cliente, cuando se recibe alguna de las señales se le notifica al hilo principal a través de un canal que se lee antes de abrir una nueva conexión. Por lo tanto, el cliente finaliza la conexión que tenía y luego cierra todo en vez de abrir una nueva.
 
 ### Ejercicio 6
 

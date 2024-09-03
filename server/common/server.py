@@ -113,7 +113,7 @@ class Server:
 
     def send_response(self, bets_num: int):
         """
-        Sends to client bet number saved
+        Sends bet number to client
         """
         self.client_socket.sendall("{}\n".format(bets_num).encode('utf-8'))
     
