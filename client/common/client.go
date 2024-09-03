@@ -105,7 +105,7 @@ func (c *Client) closeAll() {
 	if c.conn != nil {c.conn.Close()}
 }
 
-// Opens connection with server, sends bet and waits for confirmation
+// Opens connection with server, sends batch of bets and waits for confirmation
 func (c *Client) handleConnection(msgID int) {
 	// Create the connection the server in every loop iteration. Send an
 	c.CreateClientSocket()
@@ -156,6 +156,7 @@ func createBet(agency string, betStr string) *Bet {
 	return NewBet(agency, info[0], info[1], info[2], info[3], info[4])
 }
 
+// Sends 1 batch of bets to server
 func (c *Client) sendBatch(batch []string) int{
 	join := strings.Join(batch, BET_SEPARATOR)
 	b := fmt.Sprintf("%s\n", join)
@@ -170,8 +171,12 @@ func (c *Client) sendBatch(batch []string) int{
 	return len(batch)
 }
 
+// Reads bets from file and sends 1 batch each time, skipping bets already sent before
 func (c* Client) sendBets(batchNum int) {
 	file := readBetsFile(c.config.ID)
+	if file == nil {
+		return
+	}
 	defer file.Close()
 
 	var betsToSend[] string
@@ -188,7 +193,7 @@ func (c* Client) sendBets(batchNum int) {
 			}
 			betsToSend = append(betsToSend, bet.String())
 		}
-	
+		
 		if line == batchNum*c.config.BatchMaxAmount{
 			size := c.sendBatch(betsToSend)
 			c.readResponse(size)
@@ -215,6 +220,7 @@ func readBetsFile(id string) *os.File {
 			id,
 			err,
 		)
+		return nil
 	}
 	return file
 }

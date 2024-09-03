@@ -61,7 +61,7 @@ class Server:
 
     def __handle_client_connection(self):
         """
-        Read message from a specific client socket and closes the socket
+        Read message from a specific client socket until full batch is received or client closes connection. At the end closes client socket.
 
         If a problem arises in the communication with the client, the
         client socket will also be closed
@@ -72,6 +72,7 @@ class Server:
                 read = self.client_socket.recv(1024).decode('utf-8', 'ignore')
                 if not read:
                     break
+                # save bytes read until full batch is received
                 msg = old_msg + read
                 old_msg = msg
                 try:
@@ -89,7 +90,7 @@ class Server:
 
     def handle_message(self, msg: string):
         """
-        Parses bet received from client and stores it
+        Parses batch of bets received from client and stores it
 
         Sends response to client
         """
@@ -113,7 +114,7 @@ class Server:
 
     def send_response(self, bets_num: int):
         """
-        Sends bet number to client
+        Sends how many bets were stored to client
         """
         self.client_socket.sendall("{}\n".format(bets_num).encode('utf-8'))
     
@@ -129,6 +130,9 @@ def close_socket(sock: socket, name: string):
     return sock
 
 def handle_bet(betStr: string):
+    """
+    Creates bet from string received
+    """
     params = betStr.split(FIELD_SEPARATOR)
     if len(params) < 6:
         return None
