@@ -109,6 +109,7 @@ func (c *Client) handleConnection() {
 	c.conn.Close()
 }
 
+// Reads from channel and returns true if the other go routine signaled to stop
 func (c*Client) stopClient() bool {
 	select {
 	case stop := <-c.stop:
@@ -121,7 +122,7 @@ func (c*Client) stopClient() bool {
 	return false
 }
 
-// Sends DONE to server letting it know it has finished sending all of its bets
+// Sends DONE to server to let it know it has finished sending all of its bets
 func (c* Client) sendDone() {
 	s := fmt.Sprintf("%s:%v", DONE, c.config.ID)
 	_, err := c.conn.Write([]byte(s))
