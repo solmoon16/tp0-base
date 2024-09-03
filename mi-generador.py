@@ -25,7 +25,7 @@ client = services['client1']
 for i in range(0, client_num):
     name = 'client'+str(i+1)
     client['container_name'] = name
-    client['environment'] = [f'CLI_ID={i+1}']
+    client['environment'] = [f'CLI_ID={i+1}', 'NOMBRE=Laura', 'APELLIDO=Perez', 'DOCUMENTO=12345678', 'NACIMIENTO=1960-05-28', f'NUMERO={7089+i}']
     services[name] = client.copy()
 
 yaml.Dumper.ignore_aliases = lambda *args : True
