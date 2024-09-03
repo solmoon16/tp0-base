@@ -166,7 +166,9 @@ func (c *Client) readResponse(batchSize int) {
 		return
 	}
 	msg_read, err := bufio.NewReader(c.conn).ReadString(ESM_CHAR)
-
+	if errors.Is(err, os.ErrClosed) {
+		return
+	}
 	if err != nil {
 		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: error communicating with server (%v)",
 			c.config.ID,
