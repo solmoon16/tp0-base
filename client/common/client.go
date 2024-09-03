@@ -165,8 +165,6 @@ func (c *Client) readResponse(batchSize int) {
 		c.closeAll()
 		return
 	}
-	// sets read deadline for socket with server
-	c.conn.SetReadDeadline(time.Now().Add(c.config.LoopPeriod))
 	msg_read, err := bufio.NewReader(c.conn).ReadString(ESM_CHAR)
 
 	if err != nil {
