@@ -21,6 +21,7 @@ const EXTENSION = ".csv"
 const BET_SEPARATOR = ";"
 const FIELD_SEPARATOR = ","
 const DONE = "DONE"
+const BATCH_MAX = 120
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
@@ -54,7 +55,7 @@ func NewClient(config ClientConfig) *Client {
 	// waits for signal in different go routine
 	go signalHandler(stop, config.ID)
 	if config.BatchMaxAmount == 0 {
-		config.BatchMaxAmount = 120
+		config.BatchMaxAmount = BATCH_MAX
 	}
 
 	client := &Client{
@@ -159,7 +160,7 @@ func (c *Client) readResponse(batchSize int) {
 	}
 	// sets read deadline for socket with server
 	c.conn.SetReadDeadline(time.Now().Add(c.config.LoopPeriod))
-	msg_read, err := bufio.NewReader(c.conn).ReadString('\n')
+	msg_read, err := bufio.NewReader(c.conn).ReadString(ESM_CHAR)
 	
 	if err != nil {
 		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: error communicating with server (%v)",
