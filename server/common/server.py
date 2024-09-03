@@ -2,13 +2,18 @@ import signal
 import socket
 import logging
 import string
+import os
 
 from common.utils import Bet, has_won, load_bets, store_bets
 END_OF_BET=";"
 FIELD_SEPARATOR=","
 END_BATCH = "\n"
-AGENCIES_NUM = 5
 DONE = "DONE:"
+
+try:
+    AGENCIES_NUM = os.getenv("AGENCIES")
+except:
+    AGENCIES_NUM = 5
 
 class ServerSignalHandler:
     def __init__(self, server):

@@ -23,6 +23,8 @@ services:
     container_name: server
     entrypoint: python3 /main.py
     image: server:latest
+    environment:
+      - AGENCIES=5
     networks:
       - testing_net
     volumes:
