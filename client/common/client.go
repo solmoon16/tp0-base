@@ -102,13 +102,14 @@ func (c *Client) closeAll() {
 func (c *Client) handleConnection() {
 	// Create the connection the server in every loop iteration. Send an
 	c.CreateClientSocket()
-
 	if c.conn == nil {
 		return
 	}
-
-	c.sendBets()
-	c.waitWinner(1)
+	if c.sendBets() == 0 {
+		c.conn.Close()
+		return
+	}
+	c.waitWinner()
 	c.conn.Close()
 }
 
@@ -133,14 +134,8 @@ func (c* Client) sendDone() {
 
 }
 
-func (c *Client) waitWinner(read_amount int) {
+func (c *Client) waitWinner() {
 	c.conn.SetReadDeadline(time.Now().Add(1 * time.Second))
-	if read_amount == MAX_READ {
-		log.Errorf("action: consulta_ganadores | result: fail | client_id: %v | error: error communicating with server",
-			c.config.ID,
-		)
-		return
-	}
 	if c.stopClient() {
 		c.closeAll()
 		return
@@ -151,7 +146,7 @@ func (c *Client) waitWinner(read_amount int) {
 			c.config.ID,
 			err,
 		)
-		c.waitWinner(read_amount+1)
+		c.waitWinner()
 		return
 	}
 	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", msg)
@@ -213,7 +208,7 @@ func (c *Client) sendBatch(batch []string) int{
 	return len(batch)
 }
 
-func (c* Client) sendBets() {
+func (c* Client) sendBets() int{
 	file := readBetsFile(c.config.ID)
 	defer file.Close()
 
@@ -224,12 +219,12 @@ func (c* Client) sendBets() {
 	for scanner.Scan() {
 		if c.stopClient() {
 			c.closeAll()
-			return
+			return 0
 		}
 		if line%c.config.BatchMaxAmount==0 && line != 0{
 			size := c.sendBatch(betsToSend)
 			if size == 0 {
-				return
+				return 0
 			}
 			c.readResponse(size)
 			betsToSend = []string{}
@@ -247,13 +242,14 @@ func (c* Client) sendBets() {
 
 	if len(betsToSend) != 0{
 		size := c.sendBatch(betsToSend)
-		if size == 0{
-			return
+		if size == 0 {
+			return 0
 		}
 		c.readResponse(size)
 	}
 
 	c.sendDone()
+	return line
 }
 
 func readBetsFile(id string) *os.File {
