@@ -91,3 +91,5 @@ Luego de guardar todas las apuestas, el servidor le envía al cliente la cantida
 En este caso, el cliente ya no recibe más las apuestas por variable de entorno por lo que fueron eliminadas del docker-compose.
 
 En el caso de que se conecten múltiples clientes al servidor, este procesará cada conexión de forma sincrónica e irá guardando cada batch que recibe. Al final, en el archivo `bets.csv` generado se encontrarán las apuestas de todas las agencias, no necesariamente ordenadas.
+
+Para poder leer el archivo correspondiente a cada cliente, se agregó un volumen para la carpeta .data en el contenedor del cliente. De esta forma, cada cliente puede acceder a la carpeta y, si se edita desde afuera, no es necesario reiniciar el contenedor.
