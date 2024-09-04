@@ -2,18 +2,19 @@ package common
 
 import (
 	"bufio"
+	"fmt"
 	"net"
-	"time"
-	"syscall"
 	"os"
 	"os/signal"
 	"strings"
-	"fmt"
+	"syscall"
+	"time"
 
 	"github.com/op/go-logging"
 )
 
 var log = logging.MustGetLogger("log")
+
 const END_SERVER_MESSAGE = "\n"
 const ESM_CHAR = '\n'
 
@@ -29,7 +30,7 @@ type ClientConfig struct {
 type Client struct {
 	config ClientConfig
 	conn   net.Conn
-	stop chan bool
+	stop   chan bool
 }
 
 // If SIGTERM or SIGINT are received it sends true to the stop channel so that the client knows to finish executing
@@ -50,7 +51,7 @@ func NewClient(config ClientConfig) *Client {
 
 	client := &Client{
 		config: config,
-		stop: stop,
+		stop:   stop,
 	}
 	return client
 }
@@ -73,11 +74,13 @@ func (c *Client) createClientSocket() error {
 }
 
 func (c *Client) closeAll() {
-	if c.conn != nil {c.conn.Close()}
+	if c.conn != nil {
+		c.conn.Close()
+	}
 }
 
 // Opens connection with server, sends bet and waits for confirmation
-func (c *Client) handleConnection(msgID int) {
+func (c *Client) handleConnection() {
 	// Create the connection the server in every loop iteration. Send an
 	c.createClientSocket()
 
@@ -85,7 +88,7 @@ func (c *Client) handleConnection(msgID int) {
 		return
 	}
 
-	bet, ok := c.sendBet() 
+	bet, ok := c.sendBet()
 	if !ok {
 		return
 	}
@@ -102,7 +105,7 @@ func (c *Client) readResponse(bet *Bet) {
 	// sets read deadline for socket with server
 	c.conn.SetReadDeadline(time.Now().Add(c.config.LoopPeriod))
 	msg_read, err := bufio.NewReader(c.conn).ReadString(ESM_CHAR)
-	
+
 	if err != nil {
 		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: error communicating with server (%v)",
 			c.config.ID,
@@ -115,13 +118,13 @@ func (c *Client) readResponse(bet *Bet) {
 
 	if msg == bet.number {
 		log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
-		bet.idNumber,
-		msg,
+			bet.idNumber,
+			msg,
 		)
 	} else {
-		log.Infof("action: apuesta_enviada | result: fail | dni: %v | numero: %v | info: did not receive server confirmation" ,
-		bet.idNumber,
-		bet.number,
+		log.Infof("action: apuesta_enviada | result: fail | dni: %v | numero: %v | info: did not receive server confirmation",
+			bet.idNumber,
+			bet.number,
 		)
 	}
 }
@@ -141,18 +144,18 @@ func (c *Client) sendBet() (*Bet, bool) {
 
 	bet := createBet(c.config.ID)
 	if bet == nil {
-		c.stop<-true
+		c.stop <- true
 		log.Errorf("action: create_bet | result: fail | client_id: %v | error: could not create bet. ENV variables missing",
 			c.config.ID,
 		)
 		return nil, false
 	}
-	
+
 	bet.agency = c.config.ID
 	s := fmt.Sprintf("%s;", bet.String())
 	_, err := c.conn.Write([]byte(s))
 	if err != nil {
-		log.Errorf("action: send_message | result: fail | client_id: %v, error: %v", c.config.ID, err,)
+		log.Errorf("action: send_message | result: fail | client_id: %v, error: %v", c.config.ID, err)
 		return nil, false
 	}
 
@@ -172,7 +175,7 @@ func (c *Client) StartClientLoop() {
 				return
 			}
 		default:
-			c.handleConnection(msgID)
+			c.handleConnection()
 		}
 	}
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
