@@ -162,10 +162,7 @@ class Server:
         """
         self._server_socket = close_socket(self._server_socket, 'server')
         for p in self.processes:
-            try:
-                p.join()
-            except:
-                continue
+            p.join()
         for (agency, conn) in self.clients.items():
             conn = close_socket(conn, agency)
             self.clients.update({agency: conn})
