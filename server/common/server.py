@@ -61,16 +61,18 @@ class Server:
                 self.start_client_connection(client_socket, shared_clients_dict, bets_queue)
                 
     def start_client_connection(self, client_socket, shared_dict, bets_queue):
+        """
+        Starts new process to handle client
+        """
         p = Process(target=self.__handle_client_connection, args=(client_socket, shared_dict, bets_queue))
         self.processes.append(p)
         p.start()
     
     def __accept_new_connection(self):
         """
-        Accept new connections
-
-        Function blocks until a connection to a client is made.
-        Then connection created is printed and returned
+        Accept new connections if there are any. 
+        It's non-blocking and automatically returns if there aren't connections to accept.
+        If there is a connection it's created, printed and returned
         """
         if self._server_socket is None:
             return None
@@ -84,10 +86,9 @@ class Server:
 
     def __handle_client_connection(self, client_socket, clients, bets):
         """
-        Read message from a specific client socket until full batch is received or client closes connection. At the end closes client socket.
+        Read message from a specific client socket until DONE message is received or client closes connection.
 
-        If a problem arises in the communication with the client, the
-        client socket will also be closed
+        Saves client socket and id in shared dictionary.
         """
         
         old_msg = ""
@@ -126,9 +127,9 @@ class Server:
 
     def handle_message(self, msg: string, client_socket: socket, bets_queue):
         """
-        Parses batch of bets received from client and stores it
+        Parses batch of bets received from client and sends it to parent process using queue.
 
-        Sends response to client
+        Sends response to client with how many bets in batch were processed.
         """
         bets_list = []
         msg_list = msg.split(END_OF_BET)
@@ -142,6 +143,7 @@ class Server:
             logging.error(f'action: apuesta_recibida | result: fail | cantidad: {len(msg_list)}')
         else:
             logging.info(f'action: apuesta_recibida | result: success | cantidad: {len(bets_list)}')
+            # full batch is sent to queue
             bets_queue.put(bets_list)
 
         self.send_response(client_socket, len(bets_list))
@@ -153,6 +155,9 @@ class Server:
         client_socket.sendall("{}\n".format(bets_num).encode('utf-8'))
     
     def close_all(self):
+        """
+        Closes all server resources: sockets and waits for child processes to finish 
+        """
         self._server_socket = close_socket(self._server_socket, 'server')
         for p in self.processes:
             try:
@@ -168,6 +173,10 @@ class Server:
         return len(self.processes) == AGENCIES_NUM
             
     def do_draw(self):
+        """
+        Loads bets and checks each one to see if there is a winner. 
+        Sends results to agencies.
+        """
         logging.info(f'action: sorteo | result: success')
         try: 
             bets = load_bets()
@@ -194,6 +203,9 @@ class Server:
                 self.close_all()
     
     def get_bets(self, bets_queue):
+        """
+        Reads from queue to get bets from child processes until all of them are done receiving bets.
+        """
         done = 0
         while done < 5 and self.stop is False:
             try:
