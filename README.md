@@ -114,3 +114,17 @@ Por lo tanto, se pueden configurar los siguientes valores para observar distinta
 
 - número de agencias a través de variable de entorno o editando la constante
 - tiempo que pasa entre cada batch que se envía en el archivo de configuración del cliente
+
+### Ejercicio 8
+
+Para agregarle paralelización al servidor, se utilizó la biblioteca `multiprocessing` de python. Por cada conexión con un cliente, se crea un proceso nuevo. Desde el proceso principal, una vez que se hayan creado tantos procesos como el número de agencias se espera a que los procesos hijos terminen para realizar el sorteo.
+
+Cada proceso hijo recibe un socket a través del cual se va a comunicar con el cliente. El cliente envía a través del socket todos los _batches_ de apuestas y un mensaje de finalización para indicar que terminó. Mientras, el proceso va procesando todas las apuestas y guardándolas en una lista compartida. Cuando finaliza, guarda el socket del cliente junto con su número de agencia en un diccionario recibido por parámetro y finaliza.
+
+El diccionario que reciben los procesos hijos es compartido y gestionado por un `Manager`, una estructura de Python que permite sincronizar información entre procesos. Una vez que todos los procesos terminan, el proceso original accede a este diccionario y lo utiliza para obtener los sockets y avisarle a cada agencia quiénes fueron sus ganadores. Para realizar el sorteo, se utilizan las funciones `load_bets` y `has_won`.
+
+A diferencia de los ejercicios anteriores, donde cada cliente se procesaba de forma secuencial, ahora el archivo donde se almacenan las apuestas pasa a ser un recurso compartido entre procesos. Dado que ya se tiene una estructura que gestiona recursos compartidos, se optó por utilizar una lista compartida donde cada proceso va cargando las apuestas que va recibiendo de los clientes, en vez de utilizar herramientas de sincronización y controlar el acceso al archivo.
+
+Otro cambio en relación a los demás ejercicios es que se le agregó al servidor el campo `stop`, que se marca como True cuando se recibe alguna de las señales de cierre. Si bien los procesos hijos reciben las señales, con este flag pueden darse cuenta que deben finalizar y cerrar el socket que tienen con el cliente.
+
+En el proceso padre se utilizan los mismos mecanismos que antes a la hora de hacer un _graceful shutdow_: una vez que se recibe la señal se cierran todos los sockets en uso y se espera a los procesos hijos.
