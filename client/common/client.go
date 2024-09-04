@@ -163,6 +163,8 @@ func (c *Client) waitWinner() {
 
 // Reads response from server and logs answer
 func (c *Client) readResponse(batchSize int) {
+	// sets read deadline for socket with server
+	c.conn.SetReadDeadline(time.Now().Add(1 * time.Second))
 	msg_read, err := bufio.NewReader(c.conn).ReadString(ESM_CHAR)
 	if errors.Is(err, net.ErrClosed) {
 		return
