@@ -47,7 +47,7 @@ class Server:
             shared_clients_dict = manager.dict()
             bets_list = manager.list()
             while True and self._server_socket is not None:
-                if self.clients_done() and self.stop is False:
+                if self.clients_done():
                     for p in self.processes:
                         p.join(None)
                         self.processes.remove(p)
@@ -186,8 +186,10 @@ class Server:
             wins_per_agency[win.agency-1] += 1
         for agency, conn in self.clients.items():
             agency = int(agency)
-            self.send_response(conn, wins_per_agency[agency-1])
-            self.close_all()
+            try:
+                self.send_response(conn, wins_per_agency[agency-1])
+            finally:
+                self.close_all()
 
 
 def close_socket(sock: socket, name: string):
