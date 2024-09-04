@@ -115,7 +115,7 @@ func (c *Client) closeAll() {
 	}
 }
 
-// Reads from channel and returns true if the other go routine signaled to stop
+// Reads from channel and closes resources when signal is received. Closing forces all other functions using socket to fail
 func (c *Client) stopClient() {
 	stopClient := false
 	for !stopClient {
