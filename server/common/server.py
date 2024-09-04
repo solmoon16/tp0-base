@@ -44,22 +44,24 @@ class Server:
         finishes, servers starts to accept new connections again
         """
         with Manager() as manager:
-            shared = manager.dict()
+            shared_clients_dict = manager.dict()
+            bets_list = manager.list()
             while True and self._server_socket is not None:
                 if self.clients_done() and self.stop is False:
                     for p in self.processes:
                         p.join(None)
                         self.processes.remove(p)
-                    self.clients = shared
+                    self.clients = shared_clients_dict
+                    store_bets(bets_list)
                     self.do_draw()
                     break
                 client_socket = self.__accept_new_connection()
                 if client_socket is None:
                     continue
-                self.start_client_connection(client_socket, shared)
+                self.start_client_connection(client_socket, shared_clients_dict, bets_list)
                 
-    def start_client_connection(self, client_socket, shared_dict):
-        p = Process(target=self.__handle_client_connection, args=(client_socket, shared_dict))
+    def start_client_connection(self, client_socket, shared_dict, bets_list):
+        p = Process(target=self.__handle_client_connection, args=(client_socket, shared_dict, bets_list))
         self.processes.append(p)
         p.start()
     
@@ -80,7 +82,7 @@ class Server:
         else:
             return c
 
-    def __handle_client_connection(self, client_socket, clients):
+    def __handle_client_connection(self, client_socket, clients, bets):
         """
         Read message from a specific client socket until full batch is received or client closes connection. At the end closes client socket.
 
@@ -112,7 +114,7 @@ class Server:
                         sep = msg.index(END_BATCH)             
                         batch = msg[:sep]   
                         old_msg = msg[sep+len(END_BATCH):]
-                        self.handle_message(batch, client_socket)
+                        self.handle_message(batch, client_socket, bets)
                     finally:
                         continue
                     
@@ -120,28 +122,27 @@ class Server:
             logging.error(f"action: receive_message | result: fail | error: {e}")
 
 
-    def handle_message(self, msg: string, client_socket: socket):
+    def handle_message(self, msg: string, client_socket: socket, bets):
         """
         Parses batch of bets received from client and stores it
 
         Sends response to client
         """
-
+        bets_in_batch = 0
         msg_list = msg.split(END_OF_BET)
-        bets = []
         for msg in msg_list:
             bet = handle_bet(msg)
             if bet is None:
                 break
+            bets_in_batch += 1
             bets.append(bet)
         
-        if len(bets) != len(msg_list):
+        if bets_in_batch != len(msg_list):
             logging.error(f'action: apuesta_recibida | result: fail | cantidad: {len(msg_list)}')
         else:
-            store_bets(bets)
-            logging.info(f'action: apuesta_recibida | result: success | cantidad: {len(bets)}')
+            logging.info(f'action: apuesta_recibida | result: success | cantidad: {bets_in_batch}')
 
-        self.send_response(client_socket, len(bets))
+        self.send_response(client_socket, bets_in_batch)
         
     def send_response(self, client_socket, bets_num: int):
         """
@@ -180,12 +181,12 @@ class Server:
             self.send_results(winners)
     
     def send_results(self, winners: list[Bet]):
-        winsPerAgency = [0 for x in range(AGENCIES_NUM)]
+        wins_per_agency = [0 for x in range(AGENCIES_NUM)]
         for win in winners:
-            winsPerAgency[win.agency-1] += 1
+            wins_per_agency[win.agency-1] += 1
         for agency, conn in self.clients.items():
             agency = int(agency)
-            self.send_response(conn, winsPerAgency[agency-1])
+            self.send_response(conn, wins_per_agency[agency-1])
             self.close_all()
 
 
@@ -196,11 +197,11 @@ def close_socket(sock: socket, name: string):
         sock = None
     return sock
 
-def handle_bet(betStr: string):
+def handle_bet(bet_str: string):
     """
     Creates bet from string received
     """
-    params = betStr.split(FIELD_SEPARATOR)
+    params = bet_str.split(FIELD_SEPARATOR)
     if len(params) < 6:
         return None
     
