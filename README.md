@@ -115,6 +115,8 @@ Por lo tanto, se pueden configurar los siguientes valores para observar distinta
 
 Otra diferencia en relación a ejercicios previos es el _graceful shutdown_ del cliente. Antes, el cliente se fijaba antes de comenzar una nueva conexión si había recibido una señal de cierre. Ahora, como el cliente puede quedar bloqueado en el socket esperando una respuesta del servidor, se agregó otra go rutina donde se revisa constantemente si se recibió una señal y, en caso de que se haya recibido, se cierra el socket. Esto fuerza a que todas las operaciones bloqueadas y futuras con el socket fallen con un error de "ErrClosed", y obliga al cliente a terminar su ejecución.
 
+## Parte 3: Repaso de Concurrencia
+
 ### Ejercicio 8
 
 Para agregarle paralelización al servidor, se utilizó la biblioteca `multiprocessing` de python. Por cada conexión con un cliente, se crea un proceso nuevo. Desde el proceso principal, una vez que se hayan creado tantos procesos como el número de agencias, se espera a que los procesos hijos terminen para realizar el sorteo.
