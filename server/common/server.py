@@ -69,10 +69,9 @@ class Server:
 
     def __handle_client_connection(self):
         """
-        Read message from a specific client socket until full batch is received or client closes connection. At the end closes client socket.
+        Read message from a specific client socket until DONE message is received or client closes connection.
 
-        If a problem arises in the communication with the client, the
-        client socket will also be closed
+        Saves client socket and id in dictionary.
         """
         old_msg = ""
         try:
@@ -132,6 +131,9 @@ class Server:
         client_socket.sendall("{}\n".format(bets_num).encode('utf-8'))
     
     def close_all(self):
+        """
+        Closes server socket and client socket if there is a connection open.
+        """
         self._server_socket = close_socket(self._server_socket, 'server')
         self.client_socket = close_socket(self.client_socket, 'client')
     
@@ -139,6 +141,10 @@ class Server:
         return len(self.clients.keys()) == AGENCIES_NUM
             
     def do_draw(self):
+        """
+        Loads bets and checks each one to see if there is a winner. 
+        Sends results to agencies.
+        """
         logging.info(f'action: sorteo | result: success')
         bets = load_bets()
         winners = []
