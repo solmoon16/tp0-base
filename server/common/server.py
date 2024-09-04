@@ -1,4 +1,4 @@
-from multiprocessing import Manager, Process
+from multiprocessing import Manager, Process, Queue
 import signal
 import socket
 import logging
@@ -45,23 +45,23 @@ class Server:
         """
         with Manager() as manager:
             shared_clients_dict = manager.dict()
-            bets_list = manager.list()
+            bets_queue = Queue()
             while True and self._server_socket is not None:
                 if self.clients_done():
+                    self.get_bets(bets_queue)
                     for p in self.processes:
                         p.join(None)
                         self.processes.remove(p)
                     self.clients = shared_clients_dict
-                    store_bets(bets_list)
                     self.do_draw()
                     break
                 client_socket = self.__accept_new_connection()
                 if client_socket is None:
                     continue
-                self.start_client_connection(client_socket, shared_clients_dict, bets_list)
+                self.start_client_connection(client_socket, shared_clients_dict, bets_queue)
                 
-    def start_client_connection(self, client_socket, shared_dict, bets_list):
-        p = Process(target=self.__handle_client_connection, args=(client_socket, shared_dict, bets_list))
+    def start_client_connection(self, client_socket, shared_dict, bets_queue):
+        p = Process(target=self.__handle_client_connection, args=(client_socket, shared_dict, bets_queue))
         self.processes.append(p)
         p.start()
     
@@ -108,6 +108,8 @@ class Server:
                     cli_dict = clients
                     cli_dict.update({client_id:client_socket})
                     clients = cli_dict
+                    bets.put(None)
+                    bets.close()
                     return
                 except:
                     try:
@@ -122,27 +124,27 @@ class Server:
             logging.error(f"action: receive_message | result: fail | error: {e}")
 
 
-    def handle_message(self, msg: string, client_socket: socket, bets):
+    def handle_message(self, msg: string, client_socket: socket, bets_queue):
         """
         Parses batch of bets received from client and stores it
 
         Sends response to client
         """
-        bets_in_batch = 0
+        bets_list = []
         msg_list = msg.split(END_OF_BET)
         for msg in msg_list:
             bet = handle_bet(msg)
             if bet is None:
                 break
-            bets_in_batch += 1
-            bets.append(bet)
+            bets_list.append(bet)
         
-        if bets_in_batch != len(msg_list):
+        if len(bets_list) != len(msg_list):
             logging.error(f'action: apuesta_recibida | result: fail | cantidad: {len(msg_list)}')
         else:
-            logging.info(f'action: apuesta_recibida | result: success | cantidad: {bets_in_batch}')
+            logging.info(f'action: apuesta_recibida | result: success | cantidad: {len(bets_list)}')
+            bets_queue.put(bets_list)
 
-        self.send_response(client_socket, bets_in_batch)
+        self.send_response(client_socket, len(bets_list))
         
     def send_response(self, client_socket, bets_num: int):
         """
@@ -190,6 +192,17 @@ class Server:
                 self.send_response(conn, wins_per_agency[agency-1])
             finally:
                 self.close_all()
+    
+    def get_bets(self, bets_queue):
+        done = 0
+        while done < 5 and self.stop is False:
+            try:
+                bets = bets_queue.get(1)
+                if bets is None:
+                    done += 1
+            finally:
+                if bets is not None and len(bets) > 0:
+                    store_bets(bets)
 
 
 def close_socket(sock: socket, name: string):
@@ -208,4 +221,3 @@ def handle_bet(bet_str: string):
         return None
     
     return Bet(params[0], params[1], params[2], params[3], params[4], params[5])
-    
