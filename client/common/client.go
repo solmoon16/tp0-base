@@ -64,6 +64,9 @@ func NewClient(config ClientConfig) *Client {
 		config: config,
 		stop:   stop,
 	}
+
+	go client.stopClient()
+
 	return client
 }
 
@@ -87,17 +90,9 @@ func (c *Client) CreateClientSocket() error {
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
 
-	if !c.stopClient() {
-		c.handleConnection()
-	}
+	c.handleConnection()
 
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
-}
-
-func (c *Client) closeAll() {
-	if c.conn != nil {
-		c.conn.Close()
-	}
 }
 
 // Opens connection with server and sends all bets. Then waits for winners.
@@ -115,23 +110,36 @@ func (c *Client) handleConnection() {
 	c.conn.Close()
 }
 
-// Reads from channel and returns true if the other go routine signaled to stop
-func (c *Client) stopClient() bool {
-	select {
-	case stop := <-c.stop:
-		if stop {
-			return true
-		}
-	default:
-		return false
+func (c *Client) closeAll() {
+	if c.conn != nil {
+		c.conn.Close()
 	}
-	return false
+}
+
+// Reads from channel and closes resources when signal is received. Closing forces all other functions using socket to fail
+func (c *Client) stopClient() {
+	stopClient := false
+	for !stopClient {
+		select {
+		case stop := <-c.stop:
+			if stop {
+				c.closeAll()
+				stopClient = true
+			}
+		default:
+			continue
+		}
+	}
 }
 
 // Sends DONE to server to let it know it has finished sending all of its bets
 func (c *Client) sendDone() {
+
 	s := fmt.Sprintf("%s:%v", DONE, c.config.ID)
 	_, err := c.conn.Write([]byte(s))
+	if errors.Is(err, net.ErrClosed) {
+		return
+	}
 	if err != nil {
 		log.Errorf("action: mensaje_enviado | result: fail | client_id: %v | error: error communicating with server (%v)", c.config.ID, err)
 	}
@@ -139,15 +147,9 @@ func (c *Client) sendDone() {
 
 // Reads from socket until server sends winners. If process received close signal client finishes.
 func (c *Client) waitWinner() {
-	if c.stopClient() {
-		c.closeAll()
-		return
-	}
-	// sets read deadline to not block on read in case client has to close
-	c.conn.SetReadDeadline(time.Now().Add(1 * time.Second))
+
 	msg, err := bufio.NewReader(c.conn).ReadString(ESM_CHAR)
-	if errors.Is(err, os.ErrDeadlineExceeded) {
-		c.waitWinner()
+	if errors.Is(err, net.ErrClosed) {
 		return
 	}
 	if err != nil {
@@ -162,12 +164,8 @@ func (c *Client) waitWinner() {
 
 // Reads response from server and logs answer
 func (c *Client) readResponse(batchSize int) {
-	if c.stopClient() {
-		c.closeAll()
-		return
-	}
 	msg_read, err := bufio.NewReader(c.conn).ReadString(ESM_CHAR)
-	if errors.Is(err, os.ErrClosed) {
+	if errors.Is(err, net.ErrClosed) {
 		return
 	}
 	if err != nil {
@@ -200,14 +198,13 @@ func createBet(agency string, betStr string) *Bet {
 
 // Sends 1 batch of bets to server
 func (c *Client) sendBatch(batch []string) int {
-	if c.stopClient() {
-		c.closeAll()
-		return 0
-	}
 	time.Sleep(c.config.LoopPeriod)
 	join := strings.Join(batch, BET_SEPARATOR)
 	b := fmt.Sprintf("%s\n", join)
 	_, err := c.conn.Write([]byte(b))
+	if errors.Is(err, net.ErrClosed) {
+		return 0
+	}
 	if err != nil {
 		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: error communicating with server (%v)",
 			c.config.ID,
@@ -231,10 +228,7 @@ func (c *Client) sendBets() int {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		if c.stopClient() {
-			c.closeAll()
-			return 0
-		}
+
 		if line%c.config.BatchMaxAmount == 0 && line != 0 {
 			size := c.sendBatch(betsToSend)
 			if size == 0 {

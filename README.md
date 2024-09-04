@@ -100,9 +100,7 @@ Para esta situación, se modificó la lógica de las agencias para que envíen, 
 
 El servidor, por otro lado, procesa las apuestas de cada agencia de forma sincrónica y, una vez que finaliza cada cliente, los guarda en un diccionario con el número de agencia y la conexión. Una vez que tiene a todos los clientes guardados, es decir que ya todos enviaron sus apuestas, realiza el sorteo utilizando las funciones `load_bets` y `has_won`, y le informa cada cliente cuántos ganadores hubo en su agencia. Finalizado esto, el servidor se cierra cerrando su socket y el de sus clientes.
 
-Cuando cada cliente recibe los ganadores, deja en un log cuántos ganadores tuvo, cierra su socket y finaliza su ejecución.
-
-Por otra parte, en la función `waitWinner` del cliente, se lee del socket del servidor para ver si llegaron los ganadores. Para que el cliente no quede bloqueado intentando leer siempre, se agregó un ReadDeadline de 1 segundo; es decir, si el servidor no responde en 1 segundo el socket envía un error de timeout. Si ocurre un timeout, el cliente vuelve a la misma función y, antes de volver a intentar leer, corrobora si no debe cerrarse porque se recibió una señal de finalización. En caso de que deba cerrarse, cierra los sockets abiertos y termina. En caso contrario, vuelve a intentar leer. Una vez que recibe la respuesta del servidor, deja en el log cuántos ganadores hubo.
+Por otra parte, en la función `waitWinner` del cliente, el mismo se queda bloqueado en el socket del servidor intentando leer quiénes son los ganadores. Una vez que recibe la respuesta del servidor, deja en el log cuántos ganadores hubo y termina su ejecución.
 
 Una diferencia del servidor en relación al ejercicio anterior es que ahora la lectura del socket del cliente tiene una nueva condición de corte. Además de finalizar si no lee nada porque se cerró el socket, con cada lectura corrobora si el cliente le mandó el mensaje "DONE:$agencia" para ver si puede continuar procesando las apuestas de otro cliente. En caso de que así sea, agrega a un diccionario el socket abierto para volver a utilizarlo luego de realizar el sorteo.
 
@@ -114,6 +112,8 @@ Por lo tanto, se pueden configurar los siguientes valores para observar distinta
 
 - número de agencias a través de variable de entorno o editando la constante
 - tiempo que pasa entre cada batch que se envía en el archivo de configuración del cliente
+
+Otra diferencia en relación a ejercicios previos es el _graceful shutdown_ del cliente. Antes, el cliente se fijaba antes de comenzar una nueva conexión si había recibido una señal de cierre. Ahora, como el cliente puede quedar bloqueado en el socket esperando una respuesta del servidor, se agregó otra go rutina donde se revisa constantemente si se recibió una señal y, en caso de que se haya recibido, se cierra el socket. Esto fuerza a que todas las operaciones bloqueadas y futuras con el socket fallen con un error de "ErrClosed", y obliga al cliente a terminar su ejecución.
 
 ### Ejercicio 8
 

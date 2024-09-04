@@ -86,6 +86,7 @@ class Server:
     def __handle_client_connection(self, client_socket, clients, bets):
         """
         Read message from a specific client socket until DONE message is received or client closes connection.
+        Read message from a specific client socket until DONE message is received or client closes connection.
 
         Saves client socket and id in shared dictionary.
         """
@@ -151,6 +152,8 @@ class Server:
         """
         Sends how many bets were stored to client
         """
+        if client_socket is None:
+            return
         client_socket.sendall("{}\n".format(bets_num).encode('utf-8'))
     
     def close_all(self):
