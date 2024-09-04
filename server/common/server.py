@@ -128,6 +128,8 @@ class Server:
         """
         Sends how many bets were stored to client
         """
+        if client_socket is None:
+            return
         client_socket.sendall("{}\n".format(bets_num).encode('utf-8'))
     
     def close_all(self):
