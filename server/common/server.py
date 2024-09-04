@@ -203,6 +203,7 @@ class Server:
             finally:
                 if bets is not None and len(bets) > 0:
                     store_bets(bets)
+        bets_queue.close()
 
 
 def close_socket(sock: socket, name: string):
