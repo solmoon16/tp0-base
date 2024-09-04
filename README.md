@@ -114,5 +114,3 @@ Por lo tanto, se pueden configurar los siguientes valores para observar distinta
 - tiempo que pasa entre cada batch que se envía en el archivo de configuración del cliente
 
 Otra diferencia en relación a ejercicios previos es el _graceful shutdown_ del cliente. Antes, el cliente se fijaba antes de comenzar una nueva conexión si había recibido una señal de cierre. Ahora, como el cliente puede quedar bloqueado en el socket esperando una respuesta del servidor, se agregó otra go rutina donde se revisa constantemente si se recibió una señal y, en caso de que se haya recibido, se cierra el socket. Esto fuerza a que todas las operaciones bloqueadas y futuras con el socket fallen con un error de "ErrClosed", y obliga al cliente a terminar su ejecución.
-
-En el caso de la lectura que realiza el cliente cuando le envía un _batch_ al servidor, se dejó un timeout ya que el cliente continúa su ejecución por más que no haya recibido respuesta del servidor o la misma sea negativa. Si en el futuro se agregaran reintentos, sí sería necesaria la confirmación del servidor por lo que esto se tendrá que modificar.
