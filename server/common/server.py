@@ -4,7 +4,6 @@ import socket
 import logging
 import string
 import os
-import os
 
 from common.utils import Bet, has_won, load_bets, store_bets
 END_OF_BET=";"
