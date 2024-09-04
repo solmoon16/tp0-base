@@ -132,3 +132,5 @@ Otro cambio en relación a los demás ejercicios es que se le agregó al servido
 En el proceso padre se utilizan los mismos mecanismos que antes a la hora de hacer un _graceful shutdow_: una vez que se recibe la señal se cierran todos los sockets en uso y se espera a los procesos hijos.
 
 Como en el ejercicio anterior, se pueden configurar el número de agencias a través de la variable de entorno y el tiempo que esperan los clientes entre cada envío de _batch_ a través de su archivo de configuración.
+
+Para este ejercicio, no se editó al cliente.
