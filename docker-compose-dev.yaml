@@ -3,29 +3,81 @@ networks:
   testing_net:
     ipam:
       config:
-        - subnet: 172.25.125.0/24
+      - subnet: 172.25.125.0/24
       driver: default
 services:
   client1:
     container_name: client1
     depends_on:
-      - server
+    - server
     entrypoint: /client
-    image: client:latest
     environment:
-      - CLI_ID=1
+    - CLI_ID=1
+    image: client:latest
     networks:
-      - testing_net
+    - testing_net
     volumes:
-      - /home/solmoon/distribuidos/tp0-base/client/config.yaml:/config.yaml
-      - /home/solmoon/distribuidos/tp0-base/.data:/.data
+    - /home/solmoon/distribuidos/tp0-base/client/config.yaml:/config.yaml
+    - /home/solmoon/distribuidos/tp0-base/.data:/.data
+  client2:
+    container_name: client2
+    depends_on:
+    - server
+    entrypoint: /client
+    environment:
+    - CLI_ID=2
+    image: client:latest
+    networks:
+    - testing_net
+    volumes:
+    - /home/solmoon/distribuidos/tp0-base/client/config.yaml:/config.yaml
+    - /home/solmoon/distribuidos/tp0-base/.data:/.data
+  client3:
+    container_name: client3
+    depends_on:
+    - server
+    entrypoint: /client
+    environment:
+    - CLI_ID=3
+    image: client:latest
+    networks:
+    - testing_net
+    volumes:
+    - /home/solmoon/distribuidos/tp0-base/client/config.yaml:/config.yaml
+    - /home/solmoon/distribuidos/tp0-base/.data:/.data
+  client4:
+    container_name: client4
+    depends_on:
+    - server
+    entrypoint: /client
+    environment:
+    - CLI_ID=4
+    image: client:latest
+    networks:
+    - testing_net
+    volumes:
+    - /home/solmoon/distribuidos/tp0-base/client/config.yaml:/config.yaml
+    - /home/solmoon/distribuidos/tp0-base/.data:/.data
+  client5:
+    container_name: client5
+    depends_on:
+    - server
+    entrypoint: /client
+    environment:
+    - CLI_ID=5
+    image: client:latest
+    networks:
+    - testing_net
+    volumes:
+    - /home/solmoon/distribuidos/tp0-base/client/config.yaml:/config.yaml
+    - /home/solmoon/distribuidos/tp0-base/.data:/.data
   server:
     container_name: server
     entrypoint: python3 /main.py
-    image: server:latest
     environment:
-      - AGENCIES=5
+    - AGENCIES=5
+    image: server:latest
     networks:
-      - testing_net
+    - testing_net
     volumes:
-      - /home/solmoon/distribuidos/tp0-base/server/config.ini:/config.ini
+    - /home/solmoon/distribuidos/tp0-base/server/config.ini:/config.ini
