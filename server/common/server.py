@@ -184,7 +184,6 @@ class Server:
                 if has_won(b):
                     winners.append(b)
         except:
-            logging.info("no bets")
             if self.stop is True:
                 return
         else:
