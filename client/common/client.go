@@ -24,6 +24,7 @@ const BET_SEPARATOR = ";"
 const FIELD_SEPARATOR = ","
 const DONE = "DONE"
 const BATCH_MAX = 120
+const MAX_ATTEMPTS = 3
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
@@ -134,15 +135,8 @@ func (c *Client) stopClient() {
 
 // Sends DONE to server to let it know it has finished sending all of its bets
 func (c *Client) sendDone() {
-
 	s := fmt.Sprintf("%s:%v", DONE, c.config.ID)
-	_, err := c.conn.Write([]byte(s))
-	if errors.Is(err, net.ErrClosed) {
-		return
-	}
-	if err != nil {
-		log.Errorf("action: mensaje_enviado | result: fail | client_id: %v | error: error communicating with server (%v)", c.config.ID, err)
-	}
+	send(c.conn, c.config.ID, 1, []byte(s))
 }
 
 // Reads from socket until server sends winners. If process received close signal client finishes.
@@ -203,20 +197,15 @@ func createBet(agency string, betStr string) *Bet {
 
 // Sends 1 batch of bets to server
 func (c *Client) sendBatch(batch []string) int {
+
 	time.Sleep(c.config.LoopPeriod)
 	join := strings.Join(batch, BET_SEPARATOR)
-	b := fmt.Sprintf("%s\n", join)
-	_, err := c.conn.Write([]byte(b))
-	if errors.Is(err, net.ErrClosed) {
+	fullBatch := fmt.Sprintf("%s\n", join)
+
+	if !send(c.conn, c.config.ID, 1, []byte(fullBatch)) {
 		return 0
 	}
-	if err != nil {
-		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: error communicating with server (%v)",
-			c.config.ID,
-			err,
-		)
-		return 0
-	}
+
 	return len(batch)
 }
 
@@ -276,4 +265,23 @@ func readBetsFile(id string) *os.File {
 		return nil
 	}
 	return file
+}
+
+func send(conn net.Conn, id string, attempts int, bytes []byte) bool {
+	if attempts == MAX_ATTEMPTS {
+		log.Errorf("action: mensaje_enviado | result: fail | client_id: %v | error: can't send full message")
+		return false
+	}
+	n, err := conn.Write(bytes)
+	if errors.Is(err, net.ErrClosed) {
+		return false
+	}
+	if n != len(bytes) || err != nil {
+		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: error communicating with server (%v)",
+			id,
+			err,
+		)
+		return send(conn, id, attempts+1, bytes)
+	}
+	return true
 }
