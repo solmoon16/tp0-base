@@ -68,8 +68,7 @@ class Server:
     
     def __accept_new_connection(self):
         """
-        Accept new connections if there are any. 
-        It's non-blocking and automatically returns if there aren't connections to accept.
+        Blocks until a new connection is received. 
         If there is a connection it's created, printed and returned
         """
         if self._server_socket is None:
