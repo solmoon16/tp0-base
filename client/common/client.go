@@ -159,7 +159,12 @@ func (c *Client) waitWinner() {
 		)
 		return
 	}
-	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", msg)
+	winners := len(strings.Split(msg, ","))
+	if winners == 1 {
+		winners = 0
+	}
+
+	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", winners)
 }
 
 // Reads response from server and logs answer
