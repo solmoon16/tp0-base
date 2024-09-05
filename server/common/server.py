@@ -156,9 +156,9 @@ class Server:
         self.send_results(winners)
     
     def send_results(self, winners: list[Bet]):
-        winsPerAgency = [0 for x in range(AGENCIES_NUM)]
+        winsPerAgency = [[] for _ in range(AGENCIES_NUM)]
         for win in winners:
-            winsPerAgency[win.agency-1] += 1
+            winsPerAgency[win.agency-1].append(win.document)
         for (agency, conn) in self.clients.items():
             agency = int(agency)
             self.send_response(conn, winsPerAgency[agency-1])
