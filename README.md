@@ -136,3 +136,11 @@ En el proceso padre se utilizan los mismos mecanismos que antes a la hora de hac
 Como en el ejercicio anterior, se pueden configurar el número de agencias a través de la variable de entorno y el tiempo que esperan los clientes entre cada envío de _batch_ a través de su archivo de configuración.
 
 Para este ejercicio, no se editó al cliente.
+
+## Aclaraciones post-demo
+
+A partir de lo hablado, se realizaron los siguientes cambios:
+
+- El `accept` del servidor se dejó bloqueante
+- Se agregaron reintentos en la escritura del cliente en caso de que no se envíen todos los bytes necesarios o haya algún error, evitando un _short write_
+- Se dejó más claro el `read` que hace el servidor al cliente. En el ejercicio 5 sí se está haciendo un _short read_, pero a partir del 6 ya se arregla. La versión más clara se encuentra en el ejercicio 8
