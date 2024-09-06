@@ -101,7 +101,7 @@ class Server:
                 # save bytes read until full batch is received
                 msg = old_msg + read
                 old_msg = msg
-                try:
+                if DONE in msg:
                     sep = msg.index(DONE)
                     client_id = msg[sep+len(DONE):]
                     cli_dict = clients
@@ -110,14 +110,11 @@ class Server:
                     bets.put(None)
                     bets.close()
                     return
-                except:
-                    try:
-                        sep = msg.index(END_BATCH)             
-                        batch = msg[:sep]   
-                        old_msg = msg[sep+len(END_BATCH):]
-                        self.handle_message(batch, client_socket, bets)
-                    finally:
-                        continue
+                if END_BATCH in msg:
+                    sep = msg.index(END_BATCH)             
+                    batch = msg[:sep]   
+                    old_msg = msg[sep+len(END_BATCH):]
+                    self.handle_message(batch, client_socket, bets)
                     
         except OSError as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
